@@ -27,7 +27,7 @@ parser.add_argument('--dataset', type=str, default="dtd", help="choose from cifa
 parser.add_argument('--rand_init', type=bool, default=True, help="whether to initialize adversarial sample with random noise")
 parser.add_argument('--omega', type=float, default=0.001, help="random sample parameter for adv data generation")
 parser.add_argument('--dynamictau', type=bool, default=True, help='whether to use dynamic tau')
-parser.add_argument('--depth', type=int, default=32, help='WRN depth')
+parser.add_argument('--depth', type=int, default=28, help='WRN depth')
 parser.add_argument('--width_factor', type=int, default=10, help='WRN width factor')
 parser.add_argument('--drop_rate', type=float, default=0.0, help='WRN drop rate')
 parser.add_argument('--out_dir', type=str, default='./results/AT', help='dir of output')
@@ -221,7 +221,7 @@ for epoch in range(start_epoch, args.epochs):
     model.eval()
     loss, test_nat_acc = eval_clean(model, test_loader)
     test_natloss_list.append(loss)
-    loss, test_rob_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=8 / 2550,
+    loss, test_rob_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=2 / 255,
                                 loss_fn="cent", category="Madry", rand_init=True)
 
     save_best_checkpoint({

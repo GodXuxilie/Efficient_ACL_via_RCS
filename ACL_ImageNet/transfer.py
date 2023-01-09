@@ -23,11 +23,11 @@ parser.add_argument('--seed', type=int, default=7, metavar='S', help='random see
 parser.add_argument('--net', type=str, default="wrn28",
                     help="decide which network to use,choose from smallcnn,resnet18,WRN")
 parser.add_argument('--tau', type=int, default=0, help='step tau')
-parser.add_argument('--dataset', type=str, default="dtd", help="choose from cifar10,svhn")
+parser.add_argument('--dataset', type=str, default="cifar10", help="choose from cifar10,svhn")
 parser.add_argument('--rand_init', type=bool, default=True, help="whether to initialize adversarial sample with random noise")
 parser.add_argument('--omega', type=float, default=0.001, help="random sample parameter for adv data generation")
 parser.add_argument('--dynamictau', type=bool, default=True, help='whether to use dynamic tau')
-parser.add_argument('--depth', type=int, default=32, help='WRN depth')
+parser.add_argument('--depth', type=int, default=28, help='WRN depth')
 parser.add_argument('--width_factor', type=int, default=10, help='WRN width factor')
 parser.add_argument('--drop_rate', type=float, default=0.0, help='WRN drop rate')
 parser.add_argument('--out_dir', type=str, default='./results/AT', help='dir of output')
