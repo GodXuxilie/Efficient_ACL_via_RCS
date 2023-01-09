@@ -15,7 +15,7 @@ from coreset_util import RandomCoreset, LossCoreset, PGD_JS, JS_normalize_loss, 
 parser = argparse.ArgumentParser(description='PyTorch Adversarial Training')
 parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train')
 parser.add_argument('--weight_decay', '--wd', default=5e-4, type=float, metavar='W')
-parser.add_argument('--lr', type=float, default=0.1, metavar='LR', help='learning rate')
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR', help='learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum')
 parser.add_argument('--epsilon', type=float, default=8/255, help='perturbation bound')
 parser.add_argument('--num_steps', type=int, default=10, help='maximum perturbation step K')
