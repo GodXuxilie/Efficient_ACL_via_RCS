@@ -1,6 +1,7 @@
 """
 
 OT using IPOT and Sinkhorn algorithm
+Code is copied from https://github.com/Haichao-Zhang/FeatureScatter.
 
 """
 
