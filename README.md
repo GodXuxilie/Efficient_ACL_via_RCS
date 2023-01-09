@@ -2,7 +2,7 @@
 
 In this repo, we provide the code and the script for reproduce the experiemtns in the main paper, including ACL on CIFAR-10, ACL on ImageNet-1K, and SAT on ImgeNet-1K. 
 
-### Datset preparation
+### Dataset preparation
 As for preparing ImageNet-1K of $224\times 224$ resolution, we use the following scripts.
 ```
 wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_train.tar
