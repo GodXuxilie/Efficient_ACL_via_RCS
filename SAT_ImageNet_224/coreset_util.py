@@ -247,74 +247,75 @@ class LossCoreset(Coreset):
             per_batch_ori_grads_list.append(batch_grad_ori_list)
             per_batch_grads_list.append(grad_batch)
             batch_index_list.append(idx)
-           
-              
-        per_batch_grads = torch.cat(per_batch_grads_list, dim=0)
-        index_list = torch.LongTensor([q for q in range(len(batch_index_list))]).cuda()
-        batch_num = math.ceil((self.budget / self.args.Coreset_bs) * (len(index_list) / len(train_loader)))
-        print(batch_num)
-        # Greedy search
-        for j in range(batch_num):
-            # compute the gain function
-            grad_batch_list_curr = per_batch_grads[index_list]
-            gain = torch.matmul(grad_batch_list_curr, grad_val.reshape(-1,1)).squeeze()
-            print(gain.shape)
-            r = torch.argmax(gain, dim=0)
-            print(gain[r])
-            subset_index.extend(batch_index_list[index_list[r]])
 
-            if j == batch_num - 1:
-                break
+            # We conduct RCS every 100 minibatches of training data to enable RCS on large-scale datasets
+            if (i+1) % 100 == 0 or (i+1) == len(train_loader):
+                per_batch_grads = torch.cat(per_batch_grads_list, dim=0)
+                index_list = torch.LongTensor([q for q in range(len(batch_index_list))]).cuda()
+                batch_num = math.ceil((self.budget / self.args.Coreset_bs) * (len(index_list) / len(train_loader)))
+                print(batch_num)
+                # Greedy search
+                for j in range(batch_num):
+                    # compute the gain function
+                    grad_batch_list_curr = per_batch_grads[index_list]
+                    gain = torch.matmul(grad_batch_list_curr, grad_val.reshape(-1,1)).squeeze()
+                    print(gain.shape)
+                    r = torch.argmax(gain, dim=0)
+                    print(gain[r])
+                    subset_index.extend(batch_index_list[index_list[r]])
 
-            linear_layer.weight.data = linear_layer.weight.data - self.lr * per_batch_ori_grads[index_list[r]][0]
-            linear_layer.bias.data = linear_layer.bias.data - self.lr * per_batch_ori_grads[index_list[r]][1]
+                    if j == batch_num - 1:
+                        break
+
+                    linear_layer.weight.data = linear_layer.weight.data - self.lr * per_batch_ori_grads[index_list[r]][0]
+                    linear_layer.bias.data = linear_layer.bias.data - self.lr * per_batch_ori_grads[index_list[r]][1]
+                    
+                    self.model.module.fc.weight.data = self.model.module.fc.weight.data - self.lr * per_batch_ori_grads_list[index_list[r]][0]
+                    self.model.module.fc.bias.data = self.model.module.fc.bias.data - self.lr * per_batch_ori_grads_list[index_list[r]][1]
+                    
+                    feature_val_nat = None
+                    feature_val_adv = None
+                    
+                    for i, (valid_inputs, target) in enumerate(self.validation_loader):
+                        valid_inputs = valid_inputs.cuda()
+                        valid_inputs_adv = PGD_JS(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
+                                                step_size=self.args.Coreset_epsilon * (2 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
+                        with torch.no_grad():
+                            features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)
+                            features_before_linear = self.model.module.get_feature(valid_inputs)
+                            if feature_val_nat is None:
+                                feature_val_nat = features_before_linear.detach()
+                                feature_val_adv = features_adv_before_linear.detach()
+                            else:
+                                feature_val_nat = torch.cat([feature_val_nat, features_before_linear.detach()], dim=0)
+                                feature_val_adv = torch.cat([feature_val_adv, features_adv_before_linear.detach()], dim=0)
+
+                    # update grad_val with the new parameter
+                    linear_layer = self.model.module.fc
+                    linear_layer.zero_grad()
+                    features = linear_layer(feature_val_nat)
+                    features_adv = linear_layer(feature_val_adv)
+                    valid_loss = self.loss_fn(features_adv,features)
+
+                    print(valid_loss)
+                    valid_loss.backward()
+                    valid_grad_list = []
+                    for name,param in linear_layer.named_parameters():
+                        g = param.grad
+                        valid_grad_list.append(g.detach().mean(dim=0).view(1, -1))
+                        param.grad = None
+
+                    grad_val = torch.cat(valid_grad_list, dim=1)
+                    index_list = del_tensor_ele(index_list, r)
+
+                # linear_layer.load_state_dict(state_dict_linear)
+                self.model.module.fc.load_state_dict(state_dict_linear)
+                linear_layer = self.model.module.fc
             
-            self.model.module.fc.weight.data = self.model.module.fc.weight.data - self.lr * per_batch_ori_grads_list[index_list[r]][0]
-            self.model.module.fc.bias.data = self.model.module.fc.bias.data - self.lr * per_batch_ori_grads_list[index_list[r]][1]
-            
-            feature_val_nat = None
-            feature_val_adv = None
-            
-            for i, (valid_inputs, target) in enumerate(self.validation_loader):
-                valid_inputs = valid_inputs.cuda()
-                valid_inputs_adv = PGD_JS(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
-                                        step_size=self.args.Coreset_epsilon * (2 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
-                with torch.no_grad():
-                    features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)
-                    features_before_linear = self.model.module.get_feature(valid_inputs)
-                    if feature_val_nat is None:
-                        feature_val_nat = features_before_linear.detach()
-                        feature_val_adv = features_adv_before_linear.detach()
-                    else:
-                        feature_val_nat = torch.cat([feature_val_nat, features_before_linear.detach()], dim=0)
-                        feature_val_adv = torch.cat([feature_val_adv, features_adv_before_linear.detach()], dim=0)
 
-            # update grad_val with the new parameter
-            linear_layer = self.model.module.fc
-            linear_layer.zero_grad()
-            features = linear_layer(feature_val_nat)
-            features_adv = linear_layer(feature_val_adv)
-            valid_loss = self.loss_fn(features_adv,features)
-
-            print(valid_loss)
-            valid_loss.backward()
-            valid_grad_list = []
-            for name,param in linear_layer.named_parameters():
-                g = param.grad
-                valid_grad_list.append(g.detach().mean(dim=0).view(1, -1))
-                param.grad = None
-
-            grad_val = torch.cat(valid_grad_list, dim=1)
-            index_list = del_tensor_ele(index_list, r)
-
-        # linear_layer.load_state_dict(state_dict_linear)
-        self.model.module.fc.load_state_dict(state_dict_linear)
-        linear_layer = self.model.module.fc
-    
-
-        batch_index_list = []
-        per_batch_grads_list = []
-        per_batch_ori_grads_list = []
-        grad_val = copy.deepcopy(ori_grad_val)
-        print(len(subset_index), len(subset_index)/self.len_full)
+                batch_index_list = []
+                per_batch_grads_list = []
+                per_batch_ori_grads_list = []
+                grad_val = copy.deepcopy(ori_grad_val)
+                print(len(subset_index), len(subset_index)/self.len_full)
         return subset_index
