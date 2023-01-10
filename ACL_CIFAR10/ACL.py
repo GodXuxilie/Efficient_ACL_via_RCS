@@ -3,9 +3,6 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import sys,os
-path = os.path.dirname(os.path.dirname(__file__)) 
-print(path)
-sys.path.append(path)
 from models.resnet_multi_bn import resnet18, proj_head
 from utils import *
 import torchvision.transforms as transforms
@@ -13,7 +10,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import LossCoreset, RandomCoreset
+from coreset_util import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
@@ -33,14 +30,13 @@ parser.add_argument('--pgd_iter', default=5, type=int, help='how many iterations
 parser.add_argument('--seed', type=int, default=1, help='random seed')
 parser.add_argument('--gpu', default='0', type=str)
 
-parser.add_argument('--method', default='random', type=str, choices=['random', 'coreset', 'full', 'test_rob', 'test_nat_rob', 'get_fea'])
 parser.add_argument('--fre', type=int, default=20, help='')
 parser.add_argument('--warmup', type=int, default=100, help='')
 parser.add_argument('--fraction', type=float, default=0.2, help='')
 parser.add_argument('--CoresetLoss', type=str, default='KL', help='if specified, use pgd dual mode,(cal both adversarial and clean)', choices=['KL', 'JS', 'ot'])
 parser.add_argument('--Coreset_pgd_iter',  default=3, type=int, help='how many iterations employed to attack the model')
 parser.add_argument('--Coreset_lr',  default=0.01, type=float, help='how many iterations employed to attack the model')
-parser.add_argument('--val_frac', type=float, default=0.01, help='')
+
 
 def cosine_annealing(step, total_steps, lr_max, lr_min, warmup_steps=0):
     assert warmup_steps >= 0
@@ -50,115 +46,6 @@ def cosine_annealing(step, total_steps, lr_max, lr_min, warmup_steps=0):
     else:
         lr = lr_min + (lr_max - lr_min) * 0.5 * (1 + np.cos((step - warmup_steps) / (total_steps - warmup_steps) * np.pi))
     return lr
-
-def normalize(AA):
-    AA -= AA.min(1, keepdim=True)[0]
-    AA /= AA.max(1, keepdim=True)[0]
-    return AA
-    
-def kl_loss(nat, adv, reduction='mean'):
-    P = torch.log(normalize(adv) + 1e-8)
-    Q = normalize(nat) + 1e-8
-    kld = torch.nn.KLDivLoss(reduction=reduction).cuda()
-    return kld(P, Q)
-
-def eval_rob(model, loader):
-  model.eval()
-  test_loss = 0
-  correct = 0
-  whole = 0
-  with torch.no_grad():
-    for i, (samples) in enumerate(loader):
-      data, target = samples[0].cuda(), samples[1].cuda()
-      with torch.enable_grad():
-        adv_data = PGD_JS(model, data, iters=20)
-      output = model.eval()(adv_data, 'pgd')
-      test_loss += kl_loss(output, model.eval()(data,'normal'), reduction='sum')
-    #   pred = output.max(1, keepdim=True)[1]
-      # correct += pred.eq(target.view_as(pred)).sum().item()
-      whole += len(target)
-  test_loss /= len(loader.dataset)
-  print('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-    test_loss, correct, whole,
-    100. * correct / whole))
-  test_accuracy = correct / whole
-  return test_loss, test_accuracy * 100
-
-def eval_nat_rob(model, loader):
-  model.eval()
-  test_loss = 0
-  correct = 0
-  whole = 0
-  with torch.no_grad():
-    for i, (samples) in enumerate(loader):
-      data, target = samples[0].cuda(), samples[1].cuda()
-      with torch.enable_grad():
-        adv_data = PGD_JS_nat(model, data, iters=20)
-      output = model.eval()(adv_data, 'normal')
-      test_loss += kl_loss(output, model.eval()(data,'normal'), reduction='sum')
-      whole += len(target)
-  test_loss /= len(loader.dataset)
-  print('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-    test_loss, correct, whole,
-    100. * correct / whole))
-  test_accuracy = correct / whole
-  return test_loss, test_accuracy * 100
-
-def PGD_JS(model, inputs, eps=8. / 255., alpha=2. / 255., iters=10, singleImg=False, feature_gene=None, sameBN=False, loss_type='KL'):
-    # init
-    delta = torch.rand_like(inputs) * eps * 2 - eps
-    delta = torch.nn.Parameter(delta)
-    if singleImg:
-        # project half of the delta to be zero
-        idx = [i for i in range(1, delta.data.shape[0], 2)]
-        delta.data[idx] = torch.clamp(delta.data[idx], min=0, max=0)
-    nat_feature = model.eval()(inputs, 'normal')
-    nat_feature = nat_feature.detach()
-    for i in range(iters):
-        features = model.eval()(inputs + delta, 'pgd')
-
-        model.zero_grad()
-        if loss_type == 'KL':
-            loss = kl_loss(features, nat_feature)
-        loss.backward()
-        # print("loss is {}".format(loss))
-        delta.data = delta.data + alpha * delta.grad.sign()
-        delta.grad = None
-        delta.data = torch.clamp(delta.data, min=-eps, max=eps)
-        delta.data = torch.clamp(inputs + delta.data, min=0, max=1) - inputs
-        if singleImg:
-            # project half of the delta to be zero
-            idx = [i for i in range(1, delta.data.shape[0], 2)]
-            delta.data[idx] = torch.clamp(delta.data[idx], min=0, max=0)
-    return (inputs + delta).detach()
-
-def PGD_JS_nat(model, inputs, eps=8. / 255., alpha=2. / 255., iters=10, singleImg=False, feature_gene=None, sameBN=False, loss_type='KL'):
-    # init
-    delta = torch.rand_like(inputs) * eps * 2 - eps
-    delta = torch.nn.Parameter(delta)
-    if singleImg:
-        # project half of the delta to be zero
-        idx = [i for i in range(1, delta.data.shape[0], 2)]
-        delta.data[idx] = torch.clamp(delta.data[idx], min=0, max=0)
-    nat_feature = model.eval()(inputs, 'normal')
-    nat_feature = nat_feature.detach()
-    for i in range(iters):
-        features = model.eval()(inputs + delta, 'normal')
-
-        model.zero_grad()
-        if loss_type == 'KL':
-            loss = kl_loss(features, nat_feature)
-        loss.backward()
-        # print("loss is {}".format(loss))
-        delta.data = delta.data + alpha * delta.grad.sign()
-        delta.grad = None
-        delta.data = torch.clamp(delta.data, min=-eps, max=eps)
-        delta.data = torch.clamp(inputs + delta.data, min=0, max=1) - inputs
-        if singleImg:
-            # project half of the delta to be zero
-            idx = [i for i in range(1, delta.data.shape[0], 2)]
-            delta.data[idx] = torch.clamp(delta.data[idx], min=0, max=0)
-    return (inputs + delta).detach()
 
 def main():
     global args
@@ -202,7 +89,6 @@ def main():
         transforms.ToTensor(),
     ])
 
-
     from torch.utils.data import Dataset
     from typing import TypeVar, Sequence
     T_co = TypeVar('T_co', covariant=True)
@@ -223,7 +109,7 @@ def main():
             return len(self.indices)
 
     from PIL import Image
-    from torchvision.datasets import CIFAR10, CIFAR100
+    from torchvision.datasets import CIFAR10
     class CustomCIFAR10(CIFAR10):
         def __init__(self, withLabel=False, labelSubSet=None, labelTrans=None, **kwds):
             super().__init__(**kwds)
@@ -234,12 +120,10 @@ def main():
                 self.data = self.data[labelSubSet]
 
         def __getitem__(self, index):
-            # to return a PIL Image
             img = self.data[index]
             img = Image.fromarray(img)
             imgs = [self.transform(img), self.transform(img)]
             if not self.withLabel:
-                # return self.transform(img), self.transform(img)
                 return torch.stack(imgs)
             else:
                 imgLabelTrans = self.labelTrans(img)
@@ -247,14 +131,9 @@ def main():
                 return torch.stack(imgs), imgLabelTrans, label
 
     # dataset process
-    if args.dataset == 'cifar10':
-        train_datasets = CustomCIFAR10(root=args.data, train=True, transform=tfs_train, download=True)
-        val_dataset = CustomCIFAR10(root=args.data, train=True, transform=tfs_test, download=True)
-        test_datasets = CustomCIFAR10(root=args.data, train=False, transform=tfs_train, download=True)
-        num_classes = 10
-    else:
-        print("unknow dataset")
-        assert False
+    train_datasets = CustomCIFAR10(root=args.data, train=True, transform=tfs_train, download=True)
+    val_dataset = CustomCIFAR10(root=args.data, train=True, transform=tfs_test, download=True)
+    num_classes = 10
 
     full_indices = np.arange(0,len(train_datasets),1)
     train_indices = np.random.choice(len(train_datasets), size=int(len(train_datasets) * 0.99), replace=False)
@@ -309,20 +188,10 @@ def main():
         assert False
 
     start_epoch = 1
-    if args.checkpoint != '':
-        checkpoint = torch.load(args.checkpoint)
-        if 'state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-
     if args.resume:
-        if args.checkpoint == '':
-            checkpoint = torch.load(os.path.join(save_dir, 'model.pt'))
-            if 'state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['state_dict'])
-            else:
-                model.load_state_dict(checkpoint)
+        if args.checkpoint != '':
+            checkpoint = torch.load(args.checkpoint)
+            model.load_state_dict(checkpoint['state_dict'])
 
         if 'epoch' in checkpoint and 'optim' in checkpoint:
             start_epoch = checkpoint['epoch'] + 1
@@ -334,30 +203,24 @@ def main():
             log.info("cannot resume since lack of files")
             assert False
 
-    if args.method == 'random':
-        coreset_class = RandomCoreset(train_datasets, fraction=args.fraction, log=log, args=args, model=model)
-    elif args.method == 'coreset':
-        coreset_class = LossCoreset(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
+    coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
 
     valid_loss_list = []
     test_loss_list = []
     for epoch in range(start_epoch, args.epochs + 1):
-        log.info("current lr is {}".format(optimizer.state_dict()['param_groups'][0]['lr']))
         starttime = datetime.datetime.now()
-        if args.method != 'full' and epoch >= args.warmup and (epoch-1) % args.fre == 0:
+        if args.fraction < 1 and epoch >= args.warmup and (epoch-1) % args.fre == 0:
             tmp_state_dict = model.state_dict()
-            if args.adaptive_lr:
-                coreset_class.lr = optimizer.state_dict()['param_groups'][0]['lr']
-            else:
-                coreset_class.lr = args.Coreset_lr
             coreset_class.model.load_state_dict(tmp_state_dict)
             train_loader = coreset_class.get_subset_loader()
             model.load_state_dict(tmp_state_dict)
             for param in model.parameters():
                 param.requires_grad = True
-        elif args.method != 'full':
-            log.info('train on the sub set')
+        elif args.fraction < 1:
+            train_loader = coreset_class.load_subset_loader()
+            log.info('train on the previously selected subset')
         else:
+            train_loader = coreset_class.load_subset_loader()
             log.info('train on the full set')
         
         if args.scheduler == 'cosine' and epoch >=2:
@@ -436,138 +299,6 @@ def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
                      'iter_train_time: {train_time.avg:.2f}\t'.format(
                           epoch, i, len(train_loader), loss=losses,
                           data_time=data_time_meter, train_time=train_time_meter))
-
-    return losses.avg
-
-
-def validate(train_loader, val_loader, model, log, num_classes=10):
-    """
-    Run evaluation
-    """
-    criterion = nn.CrossEntropyLoss()
-    criterion = criterion.cuda()
-
-    train_time_meter = AverageMeter()
-    losses = AverageMeter()
-    losses.reset()
-    end = time.time()
-
-    # train a fc on the representation
-    for param in model.parameters():
-        param.requires_grad = False
-
-    previous_fc = model.fc
-    ch = model.fc.in_features
-    model.fc = nn.Linear(ch, num_classes)
-    model.cuda()
-
-    epochs_max = 100
-    lr = 0.1
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0, momentum=0.9, nesterov=True)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lr_lambda=lambda step: cosine_annealing(step,
-                                                epochs_max * len(train_loader),
-                                                1,  # since lr_lambda computes multiplicative factor
-                                                1e-6 / lr,
-                                                warmup_steps=0)
-    )
-
-    for epoch in range(epochs_max):
-        log.info("current lr is {}".format(optimizer.state_dict()['param_groups'][0]['lr']))
-
-        for i, (sample) in enumerate(train_loader):
-            scheduler.step()
-
-            x, y = sample[0].cuda(), sample[1].cuda()
-            p = model.eval()(x, 'normal')
-            loss = criterion(p, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            losses.update(float(loss.detach().cpu()))
-
-            train_time = time.time() - end
-            end = time.time()
-            train_time_meter.update(train_time)
-
-        log.info('Test epoch: ({0})\t'
-                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                 'train_time: {train_time.avg:.2f}\t'.format(
-                    epoch, loss=losses, train_time=train_time_meter))
-
-    acc = []
-    for loader in [train_loader, val_loader]:
-        losses = AverageMeter()
-        losses.reset()
-        top1 = AverageMeter()
-
-        for i, (inputs, targets) in enumerate(loader):
-            inputs = inputs.cuda()
-            targets = targets.cuda()
-
-            # compute output
-            with torch.no_grad():
-                outputs = model.eval()(inputs, 'normal')
-                loss = criterion(outputs, targets)
-
-            outputs = outputs.float()
-            loss = loss.float()
-
-            # measure accuracy and record loss
-            prec1 = accuracy(outputs.data, targets)[0]
-            losses.update(loss.item(), inputs.size(0))
-            top1.update(prec1.item(), inputs.size(0))
-
-            if i % args.print_freq == 0:
-                log.info('Test: [{0}/{1}]\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Accuracy {top1.val:.3f} ({top1.avg:.3f})'.format(
-                             i, len(loader), loss=losses, top1=top1))
-
-        acc.append(top1.avg)
-
-    # recover every thing
-    model.fc = previous_fc
-    model.cuda()
-    for param in model.parameters():
-        param.requires_grad = True
-
-    return acc
-
-
-def cal_train_loss(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
-
-    losses = AverageMeter()
-    losses.reset()
-    data_time_meter = AverageMeter()
-    train_time_meter = AverageMeter()
-
-    end = time.time()
-    for i, (inputs) in enumerate(train_loader):
-        data_time = time.time() - end
-        data_time_meter.update(data_time)
-        d = inputs.size()
-        # print("inputs origin shape is {}".format(d))
-        inputs = inputs.view(d[0]*2, d[2], d[3], d[4]).cuda()
-
-        if not args.ACL_DS:
-            with torch.no_grad():
-                features = model.train()(inputs, 'normal')
-                loss = nt_xent(features)
-        else:
-            inputs_adv = PGD_contrastive(model, inputs, iters=args.pgd_iter, singleImg=False)
-            with torch.no_grad():
-                features_adv = model.train()(inputs_adv, 'pgd')
-                features = model.train()(inputs, 'normal')
-                loss = (nt_xent(features) + nt_xent(features_adv))/2
-
-        losses.update(float(loss.detach().cpu()), inputs.shape[0])
-
-        train_time = time.time() - end
-        end = time.time()
-        train_time_meter.update(train_time)
 
     return losses.avg
 

@@ -5,24 +5,12 @@ from torch.utils.data import Dataset
 import torch
 import numpy as np
 from typing import TypeVar, Sequence
-T_co = TypeVar('T_co', covariant=True)
-T = TypeVar('T')
-
-from utils import nt_xent
-from train_simCLR import PGD_contrastive
 import datetime
-import math
 import torch.nn.functional as F
 
-class WeightedSubset(Dataset[T_co]):
-    r"""
-    Subset of a dataset with weights at specified indices.
-
-    Args:
-        dataset (Dataset): The whole Dataset
-        indices (sequence): Indices in the whole set selected for subset
-        weights (sequence): Weights of the subset
-    """
+T_co = TypeVar('T_co', covariant=True)
+T = TypeVar('T')
+class Subset(Dataset[T_co]):
     dataset: Dataset[T_co]
     indices: Sequence[int]
 
@@ -73,17 +61,17 @@ def del_tensor_ele(arr,index):
     arr2 = arr[index+1:]
     return torch.cat((arr1,arr2),dim=0)
 
+def normalize(AA):
+    AA -= AA.min(1, keepdim=True)[0]
+    AA /= AA.max(1, keepdim=True)[0]
+    return AA
+
 def JS_loss(P, Q, reduction='mean'):
     kld = torch.nn.KLDivLoss(reduction=reduction).cuda()
     P = F.softmax(P, dim=1)
     Q = F.softmax(Q, dim=1)
     M = 0.5 * (P + Q)
     return 0.5 * (kld(torch.log(P), M) + kld(torch.log(Q), M))
-
-def normalize(AA):
-    AA -= AA.min(1, keepdim=True)[0]
-    AA /= AA.max(1, keepdim=True)[0]
-    return AA
     
 def kl_loss(nat, adv, reduction='mean'):
     P = torch.log(normalize(adv) + 1e-8)
@@ -99,7 +87,7 @@ def ot_loss(P, Q, reduction='sum'):
     loss = ot.sinkhorn_loss_joint_IPOT(1, 0.00, F.softmax(P, dim=1),F.softmax(Q, dim=1), None, None, 0.01, m, n)
     return loss
     
-def PGD_JS(model, inputs, eps=8. / 255., alpha=2. / 255., iters=10, singleImg=False, feature_gene=None, sameBN=False, loss_type='JS'):
+def PGD(model, inputs, eps=8. / 255., alpha=2. / 255., iters=10, singleImg=False, feature_gene=None, sameBN=False, loss_type='JS'):
     # init
     delta = torch.rand_like(inputs) * eps * 2 - eps
     delta = torch.nn.Parameter(delta)
@@ -123,7 +111,6 @@ def PGD_JS(model, inputs, eps=8. / 255., alpha=2. / 255., iters=10, singleImg=Fa
         elif loss_type == 'ot':
             loss = ot_loss(nat_feature, features)
         loss.backward()
-        # print("loss is {}".format(loss))
 
         delta.data = delta.data + alpha * delta.grad.sign()
         delta.grad = None
@@ -195,33 +182,27 @@ class Coreset:
         self.log.info('begin subset selection')
         starttime = datetime.datetime.now()
         self.indices = self.update_subset_indice()
-        self.subset_loader = DataLoader(WeightedSubset(self.dataset, self.indices), num_workers=4,batch_size=self.args.batch_size,shuffle=True)
+        self.subset_loader = DataLoader(Subset(self.dataset, self.indices), num_workers=4,batch_size=self.args.batch_size,shuffle=True, pin_memory=True)
         endtime = datetime.datetime.now()
         time = (endtime - starttime).seconds
         self.log.info('finish subset selection. subset train number:{} \t spent time: {}'.format(len(self.indices), time))
         return self.subset_loader
+    
+    def load_subset_loader(self):
+        """
+        Function that regenerates the data subset loader using new subset indices and subset weights
+        """
+        self.log.info('begin load a subset list')
+        self.subset_loader = DataLoader(Subset(self.dataset, self.indices), num_workers=4,batch_size=self.args.batch_size,shuffle=True, pin_memory=True)
+        self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
+        return self.subset_loader
 
-class RandomCoreset(Coreset):
-    def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
-        super().__init__(full_data, fraction, log, args)
-        self.lr = None
-        self.model = model
-        self.online = online
-
-    def update_subset_indice(self):
-        np.random.seed(self.args.seed)
-        if self.online:
-            self.indices = np.random.choice(self.len_full, size=self.budget, replace=False)
-        return self.indices
-
-class LossCoreset(Coreset):
+class RCS(Coreset):
     def __init__(self, full_data, fraction, log,  args, validation_loader, model) -> None:
         super().__init__(full_data, fraction, log, args)
         self.validation_loader = validation_loader
         self.model = model
-        # self.args.pdg_iter = 1
         self.lr = 0.001
-
         if self.args.CoresetLoss == 'JS':
             self.loss_fn = JS_loss
         elif self.args.CoresetLoss == 'KL':
@@ -253,7 +234,7 @@ class LossCoreset(Coreset):
             
             valid_inputs = valid_inputs.view(d[0]*2, d[2], d[3], d[4]).cuda()
             valid_inputs = valid_inputs[:d[0]]
-            valid_inputs_adv = PGD_JS(self.model, valid_inputs, iters=self.args.Coreset_pgd_iter, alpha=(10./255.)/int(self.args.Coreset_pgd_iter), 
+            valid_inputs_adv = PGD(self.model, valid_inputs, iters=self.args.Coreset_pgd_iter, alpha=(10./255.)/int(self.args.Coreset_pgd_iter), 
                                         singleImg=False, loss_type=self.args.CoresetLoss)
             with torch.no_grad():
                 features_adv_before_fc = self.model.get_feature(valid_inputs_adv, 'pgd')
@@ -288,6 +269,7 @@ class LossCoreset(Coreset):
         per_batch_grads = []
         per_batch_ori_grads = []
         batch_index_list = []
+
         # begin to find the subset in each batch
         for i, (idx, inputs) in enumerate(train_loader):
             linear_layer.load_state_dict(ori_linear_layer_state_dict)
@@ -355,7 +337,7 @@ class LossCoreset(Coreset):
                 
                 valid_inputs = valid_inputs.view(d[0]*2, d[2], d[3], d[4]).cuda()
                 valid_inputs = valid_inputs[:d[0]]
-                valid_inputs_adv = PGD_JS(self.model, valid_inputs, iters=self.args.Coreset_pgd_iter, alpha=(10./255.)/int(self.args.Coreset_pgd_iter), 
+                valid_inputs_adv = PGD(self.model, valid_inputs, iters=self.args.Coreset_pgd_iter, alpha=(10./255.)/int(self.args.Coreset_pgd_iter), 
                                             singleImg=False, loss_type=self.args.CoresetLoss)
                 with torch.no_grad():
                     features_adv_before_fc = self.model.get_feature(valid_inputs_adv, 'pgd')
