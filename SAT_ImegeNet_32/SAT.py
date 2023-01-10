@@ -216,6 +216,7 @@ best_test_pgd10_acc = 0
 best_epoch = 0
 
 if args.method == 'Random':
+    # Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
     coreset_class = RandomSelection(trainset, fraction=args.fraction, log=logging, args=args, model=model)
 elif args.method == 'RCS':
     coreset_class = RCS(trainset, fraction=args.fraction, validation_loader=valid_loader, model=model, args=args, log=logging)

@@ -155,7 +155,7 @@ class Coreset:
         self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
         return self.subset_loader
 
-#Implementation of random selection is exactly same as randomstrategy.py in cords (https://github.com/decile-team/cords/blob/main/cords/selectionstrategies/SL/randomstrategy.py)!
+# Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
 class RandomSelection(Coreset):
     def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
         super().__init__(full_data, fraction, log, args)

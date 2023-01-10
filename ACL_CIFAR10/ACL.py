@@ -205,6 +205,7 @@ def main():
             assert False
 
     if args.method == 'Random':
+        # Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
         coreset_class = RandomSelection(train_datasets, fraction=args.fraction, log=log, args=args, model=model)
     elif args.method == 'RCS':
         coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
