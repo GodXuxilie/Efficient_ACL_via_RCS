@@ -222,7 +222,7 @@ def main():
             model.load_state_dict(tmp_state_dict)
             for param in model.parameters():
                 param.requires_grad = True 
-        elif args.method != 'Entire' and epoch >= args.warmup:
+        elif args.method != 'Entire' and epoch > args.warmup:
             train_loader = coreset_class.load_subset_loader()
             log.info('train on the previously selected subset')
         else:
