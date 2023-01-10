@@ -5,17 +5,13 @@ import torch.utils.data
 import torchvision.datasets as datasets
 from torch.utils.data.sampler import SubsetRandomSampler
 import sys,os
-path = os.path.dirname(os.path.dirname(__file__)) 
-print(path)
-sys.path.append(path)
-# from models.resnet_multi_bn import resnet18, proj_head
 from utils import *
 import torchvision.transforms as transforms
 import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import LossCoreset, RandomCoreset
+from coreset_util import RCS, RandomSelection
 import torch.nn as nn
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
@@ -37,14 +33,14 @@ parser.add_argument('--seed', type=int, default=1, help='random seed')
 parser.add_argument('--gpu', default='0', type=str)
 parser.add_argument('--epsilon', default=8, type=float, help='number of total epochs to run')
 
-parser.add_argument('--method', default='coreset', type=str, choices=['random', 'coreset', 'full'])
+parser.add_argument('--method', default='coreset', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=10, help='')
-parser.add_argument('--warmup', type=int, default=20, help='')
+parser.add_argument('--warmup', type=int, default=30, help='')
 parser.add_argument('--fraction', type=float, default=0.05, help='')
 parser.add_argument('--CoresetLoss', type=str, default='KL', help='if specified, use pgd dual mode,(cal both adversarial and clean)', choices=['KL', 'JS', 'ot'])
 parser.add_argument('--Coreset_num_steps',  default=1, type=int, help='how many iterations employed to attack the model')
 parser.add_argument('--Coreset_lr',  default=0.01, type=float, help='how many iterations employed to attack the model')
-parser.add_argument('--val_frac', type=float, default=0.01, help='')
+
 
 class proj_head_module(nn.Module):
     def __init__(self, ch, twoLayerProj=False):
@@ -59,8 +55,6 @@ class proj_head_module(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        # debug
-        # print("adv attack: {}".format(flag_adv))
         x = self.fc1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -148,12 +142,10 @@ def main():
                 self.data = self.data[labelSubSet]
 
         def __getitem__(self, index):
-            # to return a PIL Image
             img = self.train_data[index]
             img = Image.fromarray(img)
             imgs = [self.transform(img), self.transform(img)]
             if not self.withLabel:
-                # return self.transform(img), self.transform(img)
                 return torch.stack(imgs)
             else:
                 imgLabelTrans = self.labelTrans(img)
@@ -199,20 +191,10 @@ def main():
         assert False
 
     start_epoch = 1
-    if args.checkpoint != '':
-        checkpoint = torch.load(args.checkpoint)
-        if 'state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-
     if args.resume:
-        if args.checkpoint == '':
-            checkpoint = torch.load(os.path.join(save_dir, 'model.pt'))
-            if 'state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['state_dict'])
-            else:
-                model.load_state_dict(checkpoint)
+        if args.checkpoint != '':
+            checkpoint = torch.load(args.checkpoint)
+            model.load_state_dict(checkpoint['state_dict'])
 
         if 'epoch' in checkpoint and 'optim' in checkpoint:
             start_epoch = checkpoint['epoch'] + 1
@@ -225,41 +207,27 @@ def main():
             log.info("cannot resume since lack of files")
             assert False
 
-    if args.method == 'random':
-        coreset_class = RandomCoreset(trainset, fraction=args.fraction, log=log, args=args, model=model)
-    elif args.method == 'coreset':
-        coreset_class = LossCoreset(trainset, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
+    if args.method == 'Random':
+        coreset_class = RandomSelection(trainset, fraction=args.fraction, log=log, args=args, model=model)
+    elif args.method == 'RCS':
+        coreset_class = RCS(trainset, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
     
-    valid_loss_list = []
-    test_loss_list = []
     for epoch in range(start_epoch, args.epochs + 1):
-        log.info("current lr is {}".format(optimizer.state_dict()['param_groups'][0]['lr']))
         starttime = datetime.datetime.now()
-        if args.method != 'full' and epoch >= args.warmup and (epoch-1) % args.fre == 0:
+        if args.method != 'Entire' and epoch >= args.warmup and (epoch-1) % args.fre == 0:
             tmp_state_dict = model.state_dict()
-            if args.adaptive_lr:
-                coreset_class.lr = optimizer.state_dict()['param_groups'][0]['lr']
-            else:
-                coreset_class.lr = args.Coreset_lr
             coreset_class.model.load_state_dict(tmp_state_dict)
+            coreset_class.lr = args.Coreset_lr
             train_loader = coreset_class.get_subset_loader()
             model.load_state_dict(tmp_state_dict)
-            for name, param in model.named_parameters():
+            for param in model.parameters():
                 param.requires_grad = True 
-            scheduler = torch.optim.lr_scheduler.LambdaLR(
-                optimizer,
-                lr_lambda=lambda step: cosine_annealing(step,
-                                                        args.epochs * len(train_loader),
-                                                        1,  # since lr_lambda computes multiplicative factor
-                                                        1e-6 / args.lr,
-                                                        warmup_steps=2 * len(train_loader))
-            )
-            for i in range((epoch - 1) * len(train_loader)):
-                scheduler.step()
-        elif args.method != 'full' and epoch < args.warmup:
+        elif args.method != 'Entire' and epoch >= args.warmup:
             train_loader = coreset_class.load_subset_loader()
-        elif args.method != 'full':
-            log.info('train on the sub set')
+            log.info('train on the previously selected subset')
+        else:
+            log.info('train on the full set')
+
         if args.scheduler == 'cosine' and epoch >= 2:
             scheduler = torch.optim.lr_scheduler.LambdaLR(
                 optimizer,
@@ -271,7 +239,6 @@ def main():
             )
             for i in range((epoch - 1) * len(train_loader)):
                 scheduler.step()
-        log.info('train on the full set')
 
         train_loss = train(train_loader, model, optimizer, scheduler, epoch, log, num_classes=num_classes)
         endtime = datetime.datetime.now()
@@ -280,8 +247,6 @@ def main():
             'epoch': epoch,
             'state_dict': model.state_dict(),
             'optim': optimizer.state_dict(),
-            'valid_loss_list': valid_loss_list,
-            'test_loss_list': test_loss_list,
         }, filename=os.path.join(save_dir, 'model.pt'))
 
         log.info('[Epoch: {}] [Train loss: {}] [Train time: {}]'.format(epoch, train_loss, time))
@@ -336,138 +301,6 @@ def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
                      'iter_train_time: {train_time.avg:.2f}\t'.format(
                           epoch, i, len(train_loader), loss=losses,
                           data_time=data_time_meter, train_time=train_time_meter))
-
-    return losses.avg
-
-
-def validate(train_loader, val_loader, model, log, num_classes=10):
-    """
-    Run evaluation
-    """
-    criterion = nn.CrossEntropyLoss()
-    criterion = criterion.cuda()
-
-    train_time_meter = AverageMeter()
-    losses = AverageMeter()
-    losses.reset()
-    end = time.time()
-
-    # train a fc on the representation
-    for param in model.parameters():
-        param.requires_grad = False
-
-    previous_fc = model.fc
-    ch = model.fc.in_features
-    model.fc = nn.Linear(ch, num_classes)
-    model.cuda()
-
-    epochs_max = 100
-    lr = 0.1
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0, momentum=0.9, nesterov=True)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lr_lambda=lambda step: cosine_annealing(step,
-                                                epochs_max * len(train_loader),
-                                                1,  # since lr_lambda computes multiplicative factor
-                                                1e-6 / lr,
-                                                warmup_steps=0)
-    )
-
-    for epoch in range(epochs_max):
-        log.info("current lr is {}".format(optimizer.state_dict()['param_groups'][0]['lr']))
-
-        for i, (sample) in enumerate(train_loader):
-            scheduler.step()
-
-            x, y = sample[0].cuda(), sample[1].cuda()
-            p = model.eval()(x)
-            loss = criterion(p, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            losses.update(float(loss.detach().cpu()))
-
-            train_time = time.time() - end
-            end = time.time()
-            train_time_meter.update(train_time)
-
-        log.info('Test epoch: ({0})\t'
-                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                 'train_time: {train_time.avg:.2f}\t'.format(
-                    epoch, loss=losses, train_time=train_time_meter))
-
-    acc = []
-    for loader in [train_loader, val_loader]:
-        losses = AverageMeter()
-        losses.reset()
-        top1 = AverageMeter()
-
-        for i, (inputs, targets) in enumerate(loader):
-            inputs = inputs.cuda()
-            targets = targets.cuda()
-
-            # compute output
-            with torch.no_grad():
-                outputs = model.eval()(inputs)
-                loss = criterion(outputs, targets)
-
-            outputs = outputs.float()
-            loss = loss.float()
-
-            # measure accuracy and record loss
-            prec1 = accuracy(outputs.data, targets)[0]
-            losses.update(loss.item(), inputs.size(0))
-            top1.update(prec1.item(), inputs.size(0))
-
-            if i % args.print_freq == 0:
-                log.info('Test: [{0}/{1}]\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Accuracy {top1.val:.3f} ({top1.avg:.3f})'.format(
-                             i, len(loader), loss=losses, top1=top1))
-
-        acc.append(top1.avg)
-
-    # recover every thing
-    model.fc = previous_fc
-    model.cuda()
-    for param in model.parameters():
-        param.requires_grad = True
-
-    return acc
-
-
-def cal_train_loss(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
-
-    losses = AverageMeter()
-    losses.reset()
-    data_time_meter = AverageMeter()
-    train_time_meter = AverageMeter()
-
-    end = time.time()
-    for i, (inputs) in enumerate(train_loader):
-        data_time = time.time() - end
-        data_time_meter.update(data_time)
-        d = inputs.size()
-        # print("inputs origin shape is {}".format(d))
-        inputs = inputs.view(d[0]*2, d[2], d[3], d[4]).cuda()
-
-        if not args.ACL_DS:
-            with torch.no_grad():
-                features = model.train()(inputs)
-                loss = nt_xent(features, t=0.1)
-        else:
-            inputs_adv = PGD_contrastive(model, inputs, iters=args.pgd_iter, singleImg=False)
-            with torch.no_grad():
-                features_adv = model.train()(inputs_adv)
-                features = model.train()(inputs)
-                loss = (nt_xent(features, t=0.1) + nt_xent(features_adv, t=0.1))/2
-
-        losses.update(float(loss.detach().cpu()), inputs.shape[0])
-
-        train_time = time.time() - end
-        end = time.time()
-        train_time_meter.update(train_time)
 
     return losses.avg
 

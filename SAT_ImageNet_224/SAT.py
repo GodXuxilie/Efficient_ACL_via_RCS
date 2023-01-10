@@ -9,7 +9,7 @@ import logging
 import torch
 from utils_log.utils import set_logger
 import attack_generator as attack
-from coreset_util import RandomCoreset, LossCoreset
+from coreset_util import RCS, RandomSelection
 
 parser = argparse.ArgumentParser(description='PyTorch Adversarial Training')
 parser.add_argument('--epochs', type=int, default=90, metavar='N', help='number of epochs to train')
@@ -38,7 +38,7 @@ parser.add_argument('--optimizer', type=str, default='sgd')
 parser.add_argument('--nes', type=bool, default=False)
 parser.add_argument('--ams', type=bool, default=False)
 
-parser.add_argument('--method', default='random', type=str, choices=['random', 'coreset', 'full'])
+parser.add_argument('--method', default='random', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=10, help='')
 parser.add_argument('--warmup', type=int, default=10, help='')
 parser.add_argument('--fraction', type=float, default=0.1, help='')
@@ -47,7 +47,6 @@ parser.add_argument('--Coreset_lr',  default=0.01, type=float, help='how many it
 parser.add_argument('--Coreset_epsilon', type=float, default=4, help='perturbation bound')
 parser.add_argument('--Coreset_num_steps', type=int, default=1, help='maximum perturbation step K')
 parser.add_argument('--Coreset_step_size', type=float, default=2/255, help='step size')
-parser.add_argument('--adaptive_lr', action='store_true', help='if specified, use pgd dual mode,(cal both adversarial and clean)')
 
 args = parser.parse_args()
 
@@ -228,33 +227,30 @@ if args.resume:
     model.load_state_dict(checkpoint['state_dict'])
     logging.info(start_epoch)
 
-
 test_nat_acc = 0
 test_pgd10_acc = 0
-best_test_pgd10_acc = 0
 best_epoch = 0
 
-if args.method == 'random':
-    coreset_class = RandomCoreset(trainset, fraction=args.fraction, log=logging, args=args, model=model)
-elif args.method == 'coreset':
-    coreset_class = LossCoreset(trainset, fraction=args.fraction, validation_loader=valid_loader, model=model, args=args, log=logging)
+if args.method == 'Random':
+    coreset_class = RandomSelection(trainset, fraction=args.fraction, log=logging, args=args, model=model)
+elif args.method == 'RCS':
+    coreset_class = RCS(trainset, fraction=args.fraction, validation_loader=valid_loader, model=model, args=args, log=logging)
     
 test_natloss_list = []
 test_natacc_list = []
 
 for epoch in range(start_epoch, args.epochs):
     lr = adjust_learning_rate(optimizer, epoch + 1)
-    if args.method != 'full' and epoch >= args.warmup and (epoch - start_epoch) % args.fre == 0:
-        if args.adaptive_lr:
-            coreset_class.lr = lr * args.Coreset_lr
-        else:
-            coreset_class.lr = args.Coreset_lr
-        logging.info('coreset lr: {}'.format(coreset_class.lr))
-        coreset_class.model.load_state_dict(model.state_dict())
+    if args.method != 'Entire' and epoch >= args.warmup and (epoch - start_epoch) % args.fre == 0:
+        tmp_state_dict = model.state_dict()
+        coreset_class.lr = args.Coreset_lr
+        coreset_class.model.load_state_dict(tmp_state_dict)
         train_loader = coreset_class.get_subset_loader()
         for params in model.parameters():
             params.requires_grad = True
-    elif args.method != 'full':
+        model.load_state_dict(tmp_state_dict)
+    elif args.method != 'Entire' and epoch > args.warmup:
+        train_loader = coreset_class.load_subset_loader()
         logging.info('train on the subset')
     else:
         logging.info('train on the full set')
