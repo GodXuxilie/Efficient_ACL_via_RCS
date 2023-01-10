@@ -197,6 +197,20 @@ class Coreset:
         self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
         return self.subset_loader
 
+#Implementation of random selection is exactly same as randomstrategy.py in cords (https://github.com/decile-team/cords/blob/main/cords/selectionstrategies/SL/randomstrategy.py)!
+class RandomSelection(Coreset):
+    def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
+        super().__init__(full_data, fraction, log, args)
+        self.lr = None
+        self.model = model
+        self.online = online
+
+    def update_subset_indice(self):
+        np.random.seed(self.args.seed)
+        if self.online:
+            self.indices = np.random.choice(self.len_full, size=self.budget, replace=False)
+        return self.indices
+
 class RCS(Coreset):
     def __init__(self, full_data, fraction, log,  args, validation_loader, model) -> None:
         super().__init__(full_data, fraction, log, args)

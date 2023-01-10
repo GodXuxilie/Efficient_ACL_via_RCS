@@ -10,7 +10,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import RCS
+from coreset_util import RCS, RandomSelection
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
@@ -30,6 +30,7 @@ parser.add_argument('--pgd_iter', default=5, type=int, help='how many iterations
 parser.add_argument('--seed', type=int, default=1, help='random seed')
 parser.add_argument('--gpu', default='0', type=str)
 
+parser.add_argument('--method', default='coreset', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=20, help='')
 parser.add_argument('--warmup', type=int, default=100, help='')
 parser.add_argument('--fraction', type=float, default=0.2, help='')
@@ -203,25 +204,28 @@ def main():
             log.info("cannot resume since lack of files")
             assert False
 
-    coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
-
+    if args.method == 'Random':
+        coreset_class = RandomSelection(train_datasets, fraction=args.fraction, log=log, args=args, model=model)
+    elif args.method == 'RCS':
+        coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
+    
     valid_loss_list = []
     test_loss_list = []
     for epoch in range(start_epoch, args.epochs + 1):
         starttime = datetime.datetime.now()
-        if args.fraction < 1 and epoch >= args.warmup and (epoch-1) % args.fre == 0:
+        if args.method != 'Entire' and epoch >= args.warmup and (epoch-1) % args.fre == 0:
             tmp_state_dict = model.state_dict()
             coreset_class.model.load_state_dict(tmp_state_dict)
             train_loader = coreset_class.get_subset_loader()
             model.load_state_dict(tmp_state_dict)
             for param in model.parameters():
                 param.requires_grad = True
-        elif args.fraction < 1:
+        elif args.method != 'Entire':
             train_loader = coreset_class.load_subset_loader()
             log.info('train on the previously selected subset')
         else:
             train_loader = coreset_class.load_subset_loader()
-            log.info('train on the full set')
+            log.info('train on the entire set')
         
         if args.scheduler == 'cosine' and epoch >=2:
             scheduler = torch.optim.lr_scheduler.LambdaLR(
