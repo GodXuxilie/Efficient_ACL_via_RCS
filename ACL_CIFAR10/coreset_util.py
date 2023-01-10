@@ -322,7 +322,7 @@ class LossCoreset(Coreset):
 
         per_batch_grads = torch.cat(per_batch_grads, dim=0)
         index_list = torch.LongTensor([q for q in range(len(batch_index_list))]).cuda()
-        batch_num = math.ceil(self.budget / self.args.Coreset_bs)  
+        batch_num = int(self.budget / self.args.batch_size)  
 
         # Greedy search
         for j in range(batch_num):
