@@ -226,7 +226,7 @@ def main():
             train_loader = coreset_class.load_subset_loader()
             log.info('train on the previously selected subset')
         else:
-            log.info('train on the full set')
+            log.info('train on the entire set')
 
         if args.scheduler == 'cosine' and epoch >= 2:
             scheduler = torch.optim.lr_scheduler.LambdaLR(

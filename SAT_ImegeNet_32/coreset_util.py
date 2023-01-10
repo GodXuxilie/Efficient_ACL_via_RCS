@@ -5,16 +5,14 @@ from torch.utils.data import Dataset
 import torch
 import numpy as np
 from typing import TypeVar, Sequence
-T_co = TypeVar('T_co', covariant=True)
-T = TypeVar('T')
-
 import datetime
 import copy
 import math
 import torch.nn.functional as F
-
 import attack_generator as attack
 
+T_co = TypeVar('T_co', covariant=True)
+T = TypeVar('T')
 class Subset(Dataset[T_co]):
     dataset: Dataset[T_co]
     indices: Sequence[int]
@@ -69,13 +67,16 @@ def del_tensor_ele(arr,index):
     arr2 = arr[index+1:]
     return torch.cat((arr1,arr2),dim=0)
 
+
+def normalize(AA):
+    AA -= AA.min(1, keepdim=True)[0]
+    AA /= AA.max(1, keepdim=True)[0]
+    return AA
+
 def JS_loss(P, Q, reduction='mean'):
     kld = torch.nn.KLDivLoss(reduction=reduction).cuda()
     M = 0.5 * (P + Q)
     return 0.5 * (kld(P, M) + kld(Q, M))
-
-def normalize(x):
-    return (x - x.min()) / (x.max() - x.min())
 
 import ot
 def ot_loss(P, Q, reduction='sum'):
@@ -91,7 +92,7 @@ def kl_loss(P, Q, reduction='mean'):
     kld = torch.nn.KLDivLoss(reduction=reduction).cuda()
     return kld(P,Q)
 
-def PGD_JS(model, data, epsilon, step_size, num_steps, loss_type='JS'):
+def PGD(model, data, epsilon, step_size, num_steps, loss_type='JS'):
     model.eval()
     x_adv = data.detach() + 0.001 * torch.randn(data.shape).cuda().detach()
     # x_adv = data.detach() + torch.from_numpy(np.random.uniform(-epsilon, epsilon, data.shape)).float().cuda()
@@ -144,8 +145,18 @@ class Coreset:
         time = (endtime - starttime).seconds
         self.log.info('finish subset selection. subset train number: {} \t spent time: {}s'.format(len(self.indices), time))
         return self.subset_loader
+    
+    def load_subset_loader(self):
+        """
+        Function that regenerates the data subset loader using new subset indices and subset weights
+        """
+        self.log.info('begin load a subset list')
+        self.subset_loader = DataLoader(Subset(self.dataset, self.indices), num_workers=8,batch_size=self.args.batch_size,shuffle=True, pin_memory=True)
+        self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
+        return self.subset_loader
 
-class RandomCoreset(Coreset):
+#Implementation of random selection is exactly same as randomstrategy.py in cords (https://github.com/decile-team/cords/blob/main/cords/selectionstrategies/SL/randomstrategy.py)!
+class RandomSelection(Coreset):
     def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
         super().__init__(full_data, fraction, log, args)
         self.model = model
@@ -157,12 +168,11 @@ class RandomCoreset(Coreset):
             self.indices = np.random.choice(self.len_full, size=self.budget, replace=False)
         return self.indices
 
-class LossCoreset(Coreset):
+class RCS(Coreset):
     def __init__(self, full_data, fraction, log,  args, validation_loader, model) -> None:
         super().__init__(full_data, fraction, log, args)
         self.validation_loader = validation_loader
         self.model = model
-        self.lr = 0.001
         if self.args.CoresetLoss == 'JS':
             self.loss_fn = JS_loss
         elif self.args.CoresetLoss == 'KL':
@@ -187,7 +197,7 @@ class LossCoreset(Coreset):
         # valid_loss = 0
         for i, (valid_inputs, target) in enumerate(self.validation_loader):
             valid_inputs = valid_inputs.cuda()
-            valid_inputs_adv = PGD_JS(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
+            valid_inputs_adv = PGD(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
                                     step_size=self.args.Coreset_step_size * (10 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
             with torch.no_grad():
                 features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)
@@ -284,7 +294,7 @@ class LossCoreset(Coreset):
                     # valid_loss = 0
                     for i, (valid_inputs, target) in enumerate(self.validation_loader):
                         valid_inputs = valid_inputs.cuda()
-                        valid_inputs_adv = PGD_JS(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
+                        valid_inputs_adv = PGD(self.model, valid_inputs,epsilon=self.args.Coreset_epsilon, num_steps=self.args.Coreset_num_steps,
                                                 step_size=self.args.Coreset_step_size * (10 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
                         with torch.no_grad():
                             features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)

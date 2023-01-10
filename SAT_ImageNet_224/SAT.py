@@ -251,9 +251,9 @@ for epoch in range(start_epoch, args.epochs):
         model.load_state_dict(tmp_state_dict)
     elif args.method != 'Entire' and epoch > args.warmup:
         train_loader = coreset_class.load_subset_loader()
-        logging.info('train on the subset')
+        logging.info('train on the previously subset')
     else:
-        logging.info('train on the full set')
+        logging.info('train on the entire set')
 
     train_time, train_loss = train(model, train_loader, optimizer)
 

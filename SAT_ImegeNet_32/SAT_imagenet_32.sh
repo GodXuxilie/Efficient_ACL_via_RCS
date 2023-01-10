@@ -1,13 +1,13 @@
 ### Pre-training ###
-nohup python SAT.py --gpu 0,1,2,3 --out_dir Natural_full --epsilon 0 --method full &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir Natural_full --epsilon 0 --method Entire &
 
-nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_005 --method random --fraction 0.05 &
-nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_01 --method random --fraction 0.1 &
-nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_02 --method random --fraction 0.2 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_005 --method Random --fraction 0.05 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_01 --method Random --fraction 0.1 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir Random_02 --method Random --fraction 0.2 &
 
-nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_005 --method coreset --fraction 0.05 &
-nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_01 --method coreset --fraction 0.1 &
-nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_02 --method coreset --fraction 0.2 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_005 --method RCS --fraction 0.05 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_01 --method RCS --fraction 0.1 &
+nohup python SAT.py --gpu 0,1,2,3 --out_dir KL_02 --method RCS --fraction 0.2 &
 
 ### finetuning ###
 PT=KL_005/checkpoint.pth.tar
