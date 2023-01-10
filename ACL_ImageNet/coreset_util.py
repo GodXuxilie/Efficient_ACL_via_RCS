@@ -188,7 +188,7 @@ class Coreset:
         self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
         return self.subset_loader
 
-class RandomCoreset(Coreset):
+class RandomSelection(Coreset):
     def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
         super().__init__(full_data, fraction, log, args)
         self.lr = None

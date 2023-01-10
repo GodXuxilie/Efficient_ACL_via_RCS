@@ -3,10 +3,6 @@ nohup python ACL.py results/natural_full --gpu 0 --dataset cifar10 --method full
 
 nohup python ACL.py results/adversarial_full --gpu 0 --ACL_DS --dataset cifar10 --method full &
 
-nohup python ACL.py results/random_005 --gpu 0 --ACL_DS --dataset cifar10 --method random --fraction 0.05 &
-nohup python ACL.py results/random_01 --gpu 0 --ACL_DS --dataset cifar10 --method random --fraction 0.1 &
-nohup python ACL.py results/random_02 --gpu 0 --ACL_DS --dataset cifar10 --method random --fraction 0.2 &
-
 nohup python ACL.py results/RCS_KL_005 --gpu 0 --ACL_DS --dataset cifar10 --method coreset --CoresetLoss KL --fraction 0.05 &
 nohup python ACL.py results/RCS_KL_01 --gpu 0 --ACL_DS --dataset cifar10 --method coreset --CoresetLoss KL --fraction 0.1 &
 nohup python ACL.py results/RCS_KL_02 --gpu 0 --ACL_DS --dataset cifar10 --method coreset --CoresetLoss KL --fraction 0.2 &
