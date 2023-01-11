@@ -42,24 +42,54 @@ parser.add_argument('--Coreset_num_steps',  default=1, type=int, help='how many 
 parser.add_argument('--Coreset_lr',  default=0.01, type=float, help='how many iterations employed to attack the model')
 
 
+
+class batch_norm_multiple(nn.Module):
+    def __init__(self, norm, inplanes, bn_names=None):
+        super(batch_norm_multiple, self).__init__()
+
+        # if no bn name input, by default use single bn
+        self.bn_names = bn_names
+        if self.bn_names is None:
+            self.bn_list = norm(inplanes)
+            return
+
+        len_bn_names = len(bn_names)
+        self.bn_list = nn.ModuleList([norm(inplanes) for _ in range(len_bn_names)])
+        self.bn_names_dict = {bn_name: i for i, bn_name in enumerate(bn_names)}
+        return
+
+    def forward(self, x):
+        out = x[0]
+        name_bn = x[1]
+
+        if name_bn is None:
+            out = self.bn_list(out)
+        else:
+            bn_index = self.bn_names_dict[name_bn]
+            out = self.bn_list[bn_index](out)
+
+        return out
+
 class proj_head_module(nn.Module):
-    def __init__(self, ch, twoLayerProj=False):
+    def __init__(self, ch, twoLayerProj=False, bn_names=None):
         super(proj_head_module, self).__init__()
         self.in_features = ch
         self.twoLayerProj = twoLayerProj
 
         self.fc1 = nn.Linear(ch, ch)
-        self.bn1 = torch.nn.BatchNorm1d(ch)
+        self.bn1 = batch_norm_multiple(nn.BatchNorm1d, ch, bn_names)
         self.fc2 = nn.Linear(ch, ch, bias=False)
-        self.bn2 = torch.nn.BatchNorm1d(ch)
+        self.bn2 = batch_norm_multiple(nn.BatchNorm1d, ch, bn_names)
         self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, x):
+    def forward(self, x, bn_name):
+        # debug
+        # print("adv attack: {}".format(flag_adv))
         x = self.fc1(x)
-        x = self.bn1(x)
+        x = self.bn1([x,bn_name])
         x = self.relu(x)
         x = self.fc2(x)
-        x = self.bn2(x)
+        x = self.bn2([x, bn_name])
         return x
 
 def cosine_annealing(step, total_steps, lr_max, lr_min, warmup_steps=0):
@@ -88,11 +118,12 @@ def main():
 
     num_classes = 1000
     print('==> Load Model')
-    from models.wrn import WideResNet
-    model = WideResNet(28, num_classes, 10, dropRate=0).cuda()
+    bn_names = ['pgd', 'normal']
+    from models.wrn_with_bn import WideResNet
+    model = WideResNet(28, num_classes, 10, dropRate=0, bn_names=bn_names).cuda()
 
     h_size = model.nChannels
-    proj_head = proj_head_module(h_size).cuda()
+    proj_head = proj_head_module(h_size, bn_names=bn_names).cuda()
     model.linear = proj_head
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = True
@@ -198,7 +229,6 @@ def main():
 
         if 'epoch' in checkpoint and 'optim' in checkpoint:
             start_epoch = checkpoint['epoch'] + 1
-            # optimizer.load_state_dict(checkpoint['optim'])
             optimizer = LARS(model.parameters(), lr=args.lr, weight_decay=1e-6)
             for i in range((start_epoch - 1) * len(train_loader)):
                 scheduler.step()
@@ -275,8 +305,8 @@ def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
             loss = nt_xent(features, t=0.1)
         else:
             inputs_adv = PGD_contrastive(model, inputs, iters=args.pgd_iter, singleImg=False,eps=args.epsilon/255,alpha=(args.epsilon/4)/255)
-            features_adv = model.train()(inputs_adv)
-            features = model.train()(inputs)
+            features_adv = model.train()(inputs_adv, 'pgd')
+            features = model.train()(inputs, 'normal')
             loss = (nt_xent(features, t=0.1) + nt_xent(features_adv, t=0.1))/2
 
         optimizer.zero_grad()
@@ -327,7 +357,7 @@ def PGD_contrastive(model, inputs, eps=4. / 255., alpha=1. / 255., iters=10, sin
             if sameBN:
                 features = model(inputs + delta)
             else:
-                features = model(inputs + delta)
+                features = model(inputs + delta, 'pgd')
         else:
             features = feature_gene(model, inputs + delta)
 

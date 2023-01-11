@@ -43,26 +43,53 @@ parser.add_argument('--linear', action='store_true', help='if specified, use pgd
 
 args = parser.parse_args()
 
+class batch_norm_multiple(nn.Module):
+    def __init__(self, norm, inplanes, bn_names=None):
+        super(batch_norm_multiple, self).__init__()
+
+        # if no bn name input, by default use single bn
+        self.bn_names = bn_names
+        if self.bn_names is None:
+            self.bn_list = norm(inplanes)
+            return
+
+        len_bn_names = len(bn_names)
+        self.bn_list = nn.ModuleList([norm(inplanes) for _ in range(len_bn_names)])
+        self.bn_names_dict = {bn_name: i for i, bn_name in enumerate(bn_names)}
+        return
+
+    def forward(self, x):
+        out = x[0]
+        name_bn = x[1]
+
+        if name_bn is None:
+            out = self.bn_list(out)
+        else:
+            bn_index = self.bn_names_dict[name_bn]
+            out = self.bn_list[bn_index](out)
+
+        return out
+
 class proj_head_module(nn.Module):
-    def __init__(self, ch, twoLayerProj=False):
+    def __init__(self, ch, twoLayerProj=False, bn_names=None):
         super(proj_head_module, self).__init__()
         self.in_features = ch
         self.twoLayerProj = twoLayerProj
 
         self.fc1 = nn.Linear(ch, ch)
-        self.bn1 = torch.nn.BatchNorm1d(ch)
+        self.bn1 = batch_norm_multiple(nn.BatchNorm1d, ch, bn_names)
         self.fc2 = nn.Linear(ch, ch, bias=False)
-        self.bn2 = torch.nn.BatchNorm1d(ch)
+        self.bn2 = batch_norm_multiple(nn.BatchNorm1d, ch, bn_names)
         self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, x):
+    def forward(self, x, bn_name):
         # debug
         # print("adv attack: {}".format(flag_adv))
         x = self.fc1(x)
-        x = self.bn1(x)
+        x = self.bn1([x,bn_name])
         x = self.relu(x)
         x = self.fc2(x)
-        x = self.bn2(x)
+        x = self.bn2([x, bn_name])
         return x
 
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
@@ -104,7 +131,7 @@ def train(model, train_loader, optimizer):
         # print(data.shape)
         scheduler.step()
         optimizer.zero_grad()
-        output = model(data)
+        output = model(data, 'normal')
         loss = torch.nn.CrossEntropyLoss(reduction='mean')(output, target)
         loss_sum += loss.item()
         loss.backward()
@@ -120,7 +147,7 @@ def eval_clean(model, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.cuda(), target.cuda()
-            output = model(data)
+            output = model(data, 'normal')
             test_loss += torch.nn.CrossEntropyLoss(reduction='mean')(output, target).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -164,10 +191,12 @@ if args.dataset == 'svhn':
 
 # logging.info(num_classes)
 logging.info('==> Load Model')
-from models.wrn import WideResNet
-model = WideResNet(depth=28, num_classes=1000, widen_factor=10, dropRate=0).cuda()
+bn_names = ['pgd', 'normal']
+from models.wrn_with_bn_finetune import WideResNet
+model = WideResNet(28, num_classes, 10, dropRate=0, bn_names=bn_names).cuda()
+
 h_size = model.nChannels
-proj_head = proj_head_module(h_size).cuda()
+proj_head = proj_head_module(h_size, bn_names=bn_names).cuda()
 model.linear = proj_head
 model = torch.nn.DataParallel(model).cuda()
 

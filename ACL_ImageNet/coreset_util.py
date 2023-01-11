@@ -91,10 +91,10 @@ def PGD(model, data, epsilon, step_size, num_steps, loss_type='JS'):
     model.eval()
     x_adv = data.detach() + 0.001 * torch.randn(data.shape).cuda().detach()
     # x_adv = data.detach() + torch.from_numpy(np.random.uniform(-epsilon, epsilon, data.shape)).float().cuda()
-    nat_feature = model(data).detach()
+    nat_feature = model(data, 'pgd').detach()
     for k in range(num_steps):
         x_adv.requires_grad_()
-        output_feature = model(x_adv)
+        output_feature = model(x_adv, 'pgd')
         model.zero_grad()
         with torch.enable_grad():
             if loss_type == 'JS':
@@ -128,7 +128,7 @@ def PGD_contrastive(model, inputs, eps=4. / 255., alpha=1. / 255., iters=10, sin
             if sameBN:
                 features = model.eval()(inputs + delta)
             else:
-                features = model.eval()(inputs + delta)
+                features = model.eval()(inputs + delta, 'pgd')
         else:
             features = feature_gene(model, inputs + delta)
 
@@ -236,8 +236,8 @@ class RCS(Coreset):
             valid_inputs_adv = PGD(self.model, valid_inputs,epsilon=self.args.epsilon/255, num_steps=self.args.Coreset_num_steps,
                                     step_size=(self.args.epsilon/4)/255 * (5 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
             with torch.no_grad():
-                features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)
-                features_before_linear = self.model.module.get_feature(valid_inputs)
+                features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv, 'pgd')
+                features_before_linear = self.model.module.get_feature(valid_inputs, 'normal')
                 if feature_val_nat is None:
                     feature_val_nat = features_before_linear.detach()
                     feature_val_adv = features_adv_before_linear.detach()
@@ -246,8 +246,8 @@ class RCS(Coreset):
                     feature_val_adv = torch.cat([feature_val_adv, features_adv_before_linear.detach()], dim=0)
         
         linear_layer.zero_grad()
-        features = linear_layer(feature_val_nat)
-        features_adv = linear_layer(feature_val_adv)
+        features = linear_layer(feature_val_nat, 'normal')
+        features_adv = linear_layer(feature_val_adv, 'pgd')
         valid_loss = self.loss_fn(features, features_adv)
         valid_loss.backward()
 
@@ -274,11 +274,11 @@ class RCS(Coreset):
             inputs = inputs.view(d[0]*2, d[2], d[3], d[4]).cuda()
             inputs_adv = PGD_contrastive(self.model, inputs, iters=self.args.Coreset_num_steps, singleImg=False,eps=self.args.epsilon/255,alpha=(self.args.epsilon/4)/255)
             with torch.no_grad():
-                features_adv_before_fc = self.model.module.get_feature(inputs_adv).detach()
-                features_before_fc = self.model.module.get_feature(inputs).detach()
+                features_adv_before_fc = self.model.module.get_feature(inputs_adv, 'pgd').detach()
+                features_before_fc = self.model.module.get_feature(inputs, 'normal').detach()
             linear_layer.zero_grad()
-            features = linear_layer(features_before_fc)
-            features_adv = linear_layer(features_adv_before_fc)
+            features = linear_layer(features_before_fc, 'normal')
+            features_adv = linear_layer(features_adv_before_fc, 'pgd')
             batch_loss = (nt_xent(features, t=0.1) + nt_xent(features_adv, t=0.1))/2
             batch_loss = torch.mean(batch_loss)
             batch_loss.backward()
@@ -335,8 +335,8 @@ class RCS(Coreset):
                         valid_inputs_adv = PGD(self.model, valid_inputs,epsilon=8/255, num_steps=self.args.Coreset_num_steps,
                                                 step_size=2/255 * (5 / self.args.Coreset_num_steps),loss_type=self.args.CoresetLoss)
                         with torch.no_grad():
-                            features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv)
-                            features_before_linear = self.model.module.get_feature(valid_inputs)
+                            features_adv_before_linear = self.model.module.get_feature(valid_inputs_adv, 'pgd')
+                            features_before_linear = self.model.module.get_feature(valid_inputs, 'normal')
                             if feature_val_nat is None:
                                 feature_val_nat = features_before_linear.detach()
                                 feature_val_adv = features_adv_before_linear.detach()
@@ -347,8 +347,8 @@ class RCS(Coreset):
                     # update grad_val with the new parameter
                     linear_layer = self.model.module.linear
                     linear_layer.zero_grad()
-                    features = linear_layer(feature_val_nat)
-                    features_adv = linear_layer(feature_val_adv)
+                    features = linear_layer(feature_val_nat, 'normal')
+                    features_adv = linear_layer(feature_val_adv, 'pgd')
                     valid_loss = self.loss_fn(features, features_adv)
 
                     print(valid_loss)
