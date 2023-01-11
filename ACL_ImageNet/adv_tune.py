@@ -111,6 +111,49 @@ set_logger(os.path.join(out_dir, 'training.log'))
 logging.info(out_dir)
 logging.info(args)
 
+import torch.nn.functional as F
+def pgd(model, data, target, epsilon, step_size, num_steps,loss_fn,category,rand_init):
+    model.eval()
+    if category == "trades":
+        x_adv = data.detach() + 0.001 * torch.randn(data.shape).cuda().detach() if rand_init else data.detach()
+        nat_logit = model(data, 'pgd')
+    if category == "Madry":
+        x_adv = data.detach() + torch.from_numpy(np.random.uniform(-epsilon, epsilon, data.shape)).float().cuda() if rand_init else data.detach()
+        x_adv = torch.clamp(x_adv, 0.0, 1.0)
+
+    for k in range(num_steps):
+        x_adv.requires_grad_()
+        output = model(x_adv, 'pgd')
+        model.zero_grad()
+        with torch.enable_grad():
+            if loss_fn == "cent":
+                loss_adv = nn.CrossEntropyLoss(reduction="mean")(output, target)
+            if loss_fn == "kl":
+                criterion_kl = nn.KLDivLoss(size_average=True).cuda()
+                loss_adv = criterion_kl(F.log_softmax(output, dim=1), F.softmax(nat_logit, dim=1))
+        loss_adv.backward(retain_graph=True)
+        eta = step_size * x_adv.grad.sign()
+        x_adv = x_adv.detach() + eta
+        x_adv = torch.min(torch.max(x_adv, data - epsilon), data + epsilon)
+        x_adv = torch.clamp(x_adv, 0.0, 1.0)
+    return x_adv
+
+def eval_robust(model, test_loader, perturb_steps, epsilon, step_size, loss_fn, category, rand_init):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.enable_grad():
+        for data, target in test_loader:
+            data, target = data.cuda(), target.cuda()
+            x_adv = pgd(model,data,target,epsilon,step_size,perturb_steps,loss_fn,category,rand_init=rand_init)
+            output = model(x_adv, 'pgd')
+            test_loss += nn.CrossEntropyLoss(reduction='mean')(output, target).item()
+            pred = output.max(1, keepdim=True)[1]
+            correct += pred.eq(target.view_as(pred)).sum().item()
+    test_loss /= len(test_loader.dataset)
+    test_accuracy = correct / len(test_loader.dataset)
+    return test_loss, test_accuracy
+    
 def train(model, train_loader, optimizer):
     starttime = datetime.datetime.now()
     loss_sum = 0
@@ -250,7 +293,7 @@ for epoch in range(start_epoch, args.epochs):
     model.eval()
     loss, test_nat_acc = eval_clean(model, test_loader)
     test_natloss_list.append(loss)
-    loss, test_rob_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=2 / 255,
+    loss, test_rob_acc = eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=2 / 255,
                                 loss_fn="cent", category="Madry", rand_init=True)
 
     save_best_checkpoint({
