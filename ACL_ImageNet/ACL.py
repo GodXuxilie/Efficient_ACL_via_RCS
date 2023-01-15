@@ -35,7 +35,7 @@ parser.add_argument('--epsilon', default=8, type=float, help='number of total ep
 
 parser.add_argument('--method', default='coreset', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=10, help='')
-parser.add_argument('--warmup', type=int, default=30, help='')
+parser.add_argument('--warmup', type=int, default=20, help='')
 parser.add_argument('--fraction', type=float, default=0.05, help='')
 parser.add_argument('--CoresetLoss', type=str, default='KL', help='if specified, use pgd dual mode,(cal both adversarial and clean)', choices=['KL', 'JS', 'ot'])
 parser.add_argument('--Coreset_num_steps',  default=1, type=int, help='how many iterations employed to attack the model')
