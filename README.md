@@ -1,6 +1,6 @@
 # Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection (ICML23 Submission)
 
-In this repo, we provide the code and the script for reproduce the experiemtns in the main paper, including ACL on CIFAR-10, ACL on ImageNet-1K, and SAT on ImageNet-1K. 
+In this repo, we provide the code and the script for reproduce the experiemtns in the main paper, including adversarial contrastive learning (ACL) on CIFAR-10, ACL on ImageNet-1K, and supervised adversarial training (standard adversarial training and TRADES) on ImageNet-1K. 
 
 ### Dataset preparation
 As for preparing ImageNet-1K of $224\times 224$ resolution, we use the following scripts.
