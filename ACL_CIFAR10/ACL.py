@@ -14,7 +14,7 @@ from coreset_util import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
-parser.add_argument('--data', type=str, default='/home/x/xuxilie/data', help='location of the data')
+parser.add_argument('--data', type=str, default='./data', help='location of the data')
 parser.add_argument('--dataset', type=str, default='cifar10', help='which dataset to be used, (cifar10 or cifar100)')
 parser.add_argument('--batch_size', type=int, default=512, help='batch size')
 parser.add_argument('--epochs', default=1000, type=int, help='number of total epochs to run')
