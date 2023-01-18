@@ -2,7 +2,7 @@ import argparse
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-import sys,os
+import os
 from models.resnet_multi_bn import resnet18, proj_head
 from utils import *
 import torchvision.transforms as transforms
@@ -10,7 +10,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import RCS, RandomSelection
+from coreset_util import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
