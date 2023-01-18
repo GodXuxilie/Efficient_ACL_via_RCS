@@ -30,7 +30,6 @@ parser.add_argument('--pgd_iter', default=5, type=int, help='how many iterations
 parser.add_argument('--seed', type=int, default=1, help='random seed')
 parser.add_argument('--gpu', default='0', type=str)
 
-parser.add_argument('--method', default='coreset', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=20, help='')
 parser.add_argument('--warmup', type=int, default=100, help='')
 parser.add_argument('--fraction', type=float, default=0.2, help='')
@@ -204,17 +203,13 @@ def main():
             log.info("cannot resume since lack of files")
             assert False
 
-    if args.method == 'Random':
-        # Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
-        coreset_class = RandomSelection(train_datasets, fraction=args.fraction, log=log, args=args, model=model)
-    elif args.method == 'RCS':
-        coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
+    coreset_class = RCS(train_datasets, fraction=args.fraction, validation_loader=validation_loader, model=model, args=args, log=log)
     
     valid_loss_list = []
     test_loss_list = []
     for epoch in range(start_epoch, args.epochs + 1):
         starttime = datetime.datetime.now()
-        if args.method != 'Entire' and epoch >= args.warmup and (epoch-1) % args.fre == 0:
+        if epoch >= args.warmup and (epoch-1) % args.fre == 0:
             tmp_state_dict = model.state_dict()
             coreset_class.model.load_state_dict(tmp_state_dict)
             coreset_class.lr = args.Coreset_lr
@@ -222,7 +217,7 @@ def main():
             model.load_state_dict(tmp_state_dict)
             for param in model.parameters():
                 param.requires_grad = True
-        elif args.method != 'Entire' and epoch > args.warmup:
+        elif epoch > args.warmup:
             train_loader = coreset_class.load_subset_loader()
             log.info('train on the previously selected subset')
         else:
