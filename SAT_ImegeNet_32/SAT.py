@@ -9,7 +9,7 @@ import logging
 import torch
 from utils_log.utils import set_logger
 import attack_generator as attack
-from coreset_util import RCS, RandomSelection
+from coreset_util import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Adversarial Training')
 parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of epochs to train')
@@ -38,7 +38,6 @@ parser.add_argument('--optimizer', type=str, default='sgd')
 parser.add_argument('--nes', type=bool, default=False)
 parser.add_argument('--ams', type=bool, default=False)
 
-parser.add_argument('--method', default='coreset', type=str, choices=['Random', 'RCS', 'Entire'])
 parser.add_argument('--fre', type=int, default=10, help='')
 parser.add_argument('--warmup', type=int, default=0, help='')
 parser.add_argument('--fraction', type=float, default=0.1, help='')
@@ -215,17 +214,13 @@ test_pgd10_acc = 0
 best_test_pgd10_acc = 0
 best_epoch = 0
 
-if args.method == 'Random':
-    # Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
-    coreset_class = RandomSelection(trainset, fraction=args.fraction, log=logging, args=args, model=model)
-elif args.method == 'RCS':
-    coreset_class = RCS(trainset, fraction=args.fraction, validation_loader=valid_loader, model=model, args=args, log=logging)
+coreset_class = RCS(trainset, fraction=args.fraction, validation_loader=valid_loader, model=model, args=args, log=logging)
     
 test_natloss_list = []
 test_natacc_list = []
 
 for epoch in range(start_epoch, args.epochs):
-    if args.method != 'Entire' and epoch >= args.warmup and (epoch - 1) % args.fre == 0:
+    if epoch >= args.warmup and (epoch - 1) % args.fre == 0:
         tmp_state_dict = model.state_dict()
         coreset_class.lr = args.Coreset_lr
         coreset_class.model.load_state_dict(tmp_state_dict)
@@ -233,7 +228,7 @@ for epoch in range(start_epoch, args.epochs):
         model.load_state_dict(tmp_state_dict)
         for param in model.parameters():
             param.requires_grad = True
-    elif args.method != 'Entire' and epoch > args.warmup:
+    elif epoch > args.warmup:
         train_loader = coreset_class.load_subset_loader()
         logging.info('train on the previously selected subset')
     else:

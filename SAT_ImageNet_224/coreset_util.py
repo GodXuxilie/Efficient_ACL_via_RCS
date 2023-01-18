@@ -153,19 +153,6 @@ class Coreset:
         self.log.info('finish load a subset list. subset train number: {} \t '.format(len(self.indices)))
         return self.subset_loader
 
-# Implementation is the same as randomdataloader.py from cords (https://github.com/decile-team/cords/blob/844f897ea4ed7e2f9c1453888022c281bb2091be/cords/utils/data/dataloader/SL/adaptive/randomdataloader.py).
-class RandomSelection(Coreset):
-    def __init__(self, full_data, fraction, model, log, args, online=False) -> None:
-        super().__init__(full_data, fraction, log, args)
-        self.model = model
-        self.online = online
-
-    def update_subset_indice(self):
-        np.random.seed(self.args.seed)
-        if self.online:
-            self.indices = np.random.choice(self.len_full, size=self.budget, replace=False)
-        return self.indices
-
 class RCS(Coreset):
     def __init__(self, full_data, fraction, log,  args, validation_loader, model) -> None:
         super().__init__(full_data, fraction, log, args)
