@@ -1,25 +1,25 @@
 from torchvision import transforms
 
 # Planes dataset
-FGVC_PATH = "/home/x/xuxilie/data/fgvc-aircraft-2013b/"
+FGVC_PATH = "/data/fgvc-aircraft-2013b/"
 
 # Oxford Flowers dataset
-FLOWERS_PATH = "/tmp/datasets/oxford_flowers_pytorch/"
+FLOWERS_PATH = "/oxford_flowers_pytorch/"
 
 # DTD dataset
-DTD_PATH="/home/x/xuxilie/data/dtd/"
+DTD_PATH="/data/dtd/"
 
 # Stanford Cars dataset
-CARS_PATH = "/home/x/xuxilie/data/cars_new"
+CARS_PATH = "/data/cars_new"
 
 # SUN397 dataset
-SUN_PATH="/home/x/xuxilie/data/SUN397/splits_01/"
+SUN_PATH="/data/SUN397/splits_01/"
 
 # FOOD dataset
-FOOD_PATH = "/home/x/xuxilie/data/food-101"
+FOOD_PATH = "/data/food-101"
 
 # BIRDS dataset
-BIRDS_PATH = "/home/x/xuxilie/data/birdsnap"
+BIRDS_PATH = "/data/birdsnap"
 
 # PETS dataset
 PETS_PATH = "/tmp/datasets/pets"

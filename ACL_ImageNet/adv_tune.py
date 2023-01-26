@@ -203,22 +203,22 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
 if args.dataset == 'cifar10':
-    trainset = torchvision.datasets.CIFAR10(root='/home/x/xuxilie/data', train=True, download=True, transform=transform_train)
-    testset = torchvision.datasets.CIFAR10(root='/home/x/xuxilie/data', train=False, download=True, transform=transform_test)
+    trainset = torchvision.datasets.CIFAR10(root='/data', train=True, download=True, transform=transform_train)
+    testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
     num_classes = 10
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=2)
 
 if args.dataset == 'cifar100':
-    trainset = torchvision.datasets.CIFAR100(root='/home/x/xuxilie/data', train=True, download=True, transform=transform_train)
-    testset = torchvision.datasets.CIFAR100(root='/home/x/xuxilie/data', train=False, download=True, transform=transform_test)
+    trainset = torchvision.datasets.CIFAR100(root='/data', train=True, download=True, transform=transform_train)
+    testset = torchvision.datasets.CIFAR100(root='/data', train=False, download=True, transform=transform_test)
     num_classes = 100
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=2)
 
 if args.dataset == 'svhn':
-    trainset = torchvision.datasets.SVHN(root='/home/x/xuxilie/data', split='train', download=True, transform=transform_train)
-    testset = torchvision.datasets.SVHN(root='/home/x/xuxilie/data', split='test', download=True, transform=transform_test)
+    trainset = torchvision.datasets.SVHN(root='/data', split='train', download=True, transform=transform_train)
+    testset = torchvision.datasets.SVHN(root='/data', split='test', download=True, transform=transform_test)
     num_classes = 10
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=2)

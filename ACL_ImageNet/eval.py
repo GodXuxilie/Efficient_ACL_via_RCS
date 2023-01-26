@@ -54,17 +54,17 @@ transform_test = transforms.Compose([
 ])
 
 if args.dataset == "cifar10":
-    trainset = torchvision.datasets.CIFAR10(root='/home/x/xuxilie/data', train=True, download=True, transform=transform_test)
+    trainset = torchvision.datasets.CIFAR10(root='/data', train=True, download=True, transform=transform_test)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=False, num_workers=2)
-    testset = torchvision.datasets.CIFAR10(root='/home/x/xuxilie/data', train=False, download=True, transform=transform_test)
+    testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=2)
     num_classes = 10
 if args.dataset == "svhn":
-    testset = torchvision.datasets.SVHN(root='/home/x/xuxilie/data', split='test', download=True, transform=transform_test)
+    testset = torchvision.datasets.SVHN(root='/data', split='test', download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
     num_classes = 10
 if args.dataset == "cifar100":
-    testset = torchvision.datasets.CIFAR100(root='/home/x/xuxilie/data', train=False, download=True, transform=transform_test)
+    testset = torchvision.datasets.CIFAR100(root='/data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False, num_workers=2)
     num_classes = 100
 
