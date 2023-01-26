@@ -129,7 +129,7 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
 if args.dataset == 'cifar10':
-    trainset = torchvision.datasets.CIFAR10(root='data', train=True, download=True, transform=transform_train)
+    trainset = torchvision.datasets.CIFAR10(root='/data', train=True, download=True, transform=transform_train)
     testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
     num_classes = 10
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=2)
