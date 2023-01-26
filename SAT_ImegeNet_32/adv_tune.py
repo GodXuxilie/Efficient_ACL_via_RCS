@@ -222,7 +222,7 @@ for epoch in range(start_epoch, args.epochs):
     model.eval()
     loss, test_nat_acc = eval_clean(model, test_loader)
     test_natloss_list.append(loss)
-    loss, test_rob_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=8 / 2550,
+    loss, test_rob_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=8 / 255, step_size=2 / 255,
                                 loss_fn="cent", category="Madry", rand_init=True)
 
     save_best_checkpoint({
