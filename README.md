@@ -1,4 +1,4 @@
-# Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection (ICML23 Submission)
+# Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection (NeurIPS23 Submission)
 
 In this repo, we provide the code and the script for reproduce the experiemtns in the main paper, including adversarial contrastive learning (ACL) on CIFAR-10, ACL on ImageNet-1K, and standard adversarial training (SAT) on ImageNet-1K. 
 

@@ -15,7 +15,7 @@ from coreset_util import RCS
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
 parser.add_argument('--data', type=str, default='./data', help='location of the data')
-parser.add_argument('--dataset', type=str, default='cifar10', help='which dataset to be used, (cifar10 or cifar100)')
+parser.add_argument('--dataset', type=str, default='cifar10', help='which dataset to be used, (cifar10 or cifar100 or stl10)')
 parser.add_argument('--batch_size', type=int, default=512, help='batch size')
 parser.add_argument('--epochs', default=1000, type=int, help='number of total epochs to run')
 parser.add_argument('--print_freq', default=50, type=int, help='print frequency')
@@ -38,6 +38,88 @@ parser.add_argument('--Coreset_pgd_iter',  default=3, type=int, help='how many i
 parser.add_argument('--Coreset_lr',  default=0.01, type=float, help='how many iterations employed to attack the model')
 
 
+from torch.utils.data import Dataset
+from typing import TypeVar, Sequence
+from PIL import Image
+from torchvision.datasets import CIFAR10, CIFAR100, STL10
+T_co = TypeVar('T_co', covariant=True)
+T = TypeVar('T')
+class Subset(Dataset[T_co]):
+    dataset: Dataset[T_co]
+    indices: Sequence[int]
+
+    def __init__(self, dataset: Dataset[T_co], indices: Sequence[int]) -> None:
+        self.dataset = dataset
+        self.dataset = dataset
+        self.indices = indices
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
+
+class CustomCIFAR10(CIFAR10):
+    def __init__(self, withLabel=False, labelSubSet=None, labelTrans=None, **kwds):
+        super().__init__(**kwds)
+        self.withLabel = withLabel
+        self.labelTrans = labelTrans
+
+        if labelSubSet is not None:
+            self.data = self.data[labelSubSet]
+
+    def __getitem__(self, index):
+        img = self.data[index]
+        img = Image.fromarray(img)
+        imgs = [self.transform(img), self.transform(img)]
+        if not self.withLabel:
+            return torch.stack(imgs)
+        else:
+            imgLabelTrans = self.labelTrans(img)
+            label = self.targets[index]
+            return torch.stack(imgs), imgLabelTrans, label
+
+class CustomCIFAR100(CIFAR100):
+    def __init__(self, withLabel=False, labelSubSet=None, labelTrans=None, **kwds):
+        super().__init__(**kwds)
+        self.withLabel = withLabel
+        self.labelTrans = labelTrans
+
+        if labelSubSet is not None:
+            self.data = self.data[labelSubSet]
+
+    def __getitem__(self, index):
+        # to return a PIL Image
+        img = self.data[index]
+        img = Image.fromarray(img)
+        imgs = [self.transform(img), self.transform(img)]
+        if not self.withLabel:
+            # return self.transform(img), self.transform(img)
+            return torch.stack(imgs)
+        else:
+            imgLabelTrans = self.labelTrans(img)
+            label = self.targets[index]
+            return torch.stack(imgs), imgLabelTrans, label
+            
+class CustomSTL10(STL10):
+    def __init__(self, withLabel=False, labelTrans=None, **kwds):
+        super().__init__(**kwds)
+        self.withLabel = withLabel
+        self.labelTrans = labelTrans
+        self.ori_transfor = transforms.Compose([transforms.ToTensor()])
+
+    def __getitem__(self, idx):
+        # if not self.train:
+        #     return super().__getitem__(idx)
+
+        img = self.data[idx]
+        img = Image.fromarray(np.transpose(img, (1, 2, 0))).convert('RGB')
+        imgs = [self.transform(img), self.transform(img)]
+        if not self.withLabel:
+            return torch.stack(imgs)
+        else:
+            assert False
+
 def cosine_annealing(step, total_steps, lr_max, lr_min, warmup_steps=0):
     assert warmup_steps >= 0
 
@@ -46,6 +128,38 @@ def cosine_annealing(step, total_steps, lr_max, lr_min, warmup_steps=0):
     else:
         lr = lr_min + (lr_max - lr_min) * 0.5 * (1 + np.cos((step - warmup_steps) / (total_steps - warmup_steps) * np.pi))
     return lr
+
+def get_transform(strength):
+    rnd_color_jitter = transforms.RandomApply([transforms.ColorJitter(0.4 * strength, 0.4 * strength, 0.4 * strength, 0.1 * strength)], p=0.8 * strength)
+    rnd_gray = transforms.RandomGrayscale(p=0.2 * strength)
+    tfs_train = transforms.Compose([
+        transforms.RandomResizedCrop(96 if args.dataset == 'stl10' else 32, scale=(1.0 - 0.9 * strength, 1.0), interpolation=3),
+        transforms.RandomHorizontalFlip(),
+        rnd_color_jitter,
+        rnd_gray,
+        transforms.ToTensor(),
+    ])
+    return tfs_train
+
+
+def get_trainset(args, strength):
+    tfs_train = get_transform(strength)
+    if args.dataset == 'cifar10':
+        train_datasets = CustomCIFAR10(root=args.data, train=True, transform=tfs_train, download=True)
+    elif args.dataset == 'cifar100':
+        train_datasets = CustomCIFAR100(root=args.data, train=True, transform=tfs_train, download=True)
+    elif args.dataset == 'stl10':
+        train_datasets = CustomSTL10(root=args.data, split='unlabeled', transform=tfs_train, download=True)
+    else:
+        print("unknow dataset")
+        assert False
+
+    train_loader = torch.utils.data.DataLoader(
+        train_datasets,
+        num_workers=4,
+        batch_size=args.batch_size,
+        shuffle=True)
+    return train_loader
 
 def main():
     global args
@@ -89,51 +203,22 @@ def main():
         transforms.ToTensor(),
     ])
 
-    from torch.utils.data import Dataset
-    from typing import TypeVar, Sequence
-    T_co = TypeVar('T_co', covariant=True)
-    T = TypeVar('T')
-    class Subset(Dataset[T_co]):
-        dataset: Dataset[T_co]
-        indices: Sequence[int]
-
-        def __init__(self, dataset: Dataset[T_co], indices: Sequence[int]) -> None:
-            self.dataset = dataset
-            self.dataset = dataset
-            self.indices = indices
-
-        def __getitem__(self, idx):
-            return self.dataset[self.indices[idx]]
-
-        def __len__(self):
-            return len(self.indices)
-
-    from PIL import Image
-    from torchvision.datasets import CIFAR10
-    class CustomCIFAR10(CIFAR10):
-        def __init__(self, withLabel=False, labelSubSet=None, labelTrans=None, **kwds):
-            super().__init__(**kwds)
-            self.withLabel = withLabel
-            self.labelTrans = labelTrans
-
-            if labelSubSet is not None:
-                self.data = self.data[labelSubSet]
-
-        def __getitem__(self, index):
-            img = self.data[index]
-            img = Image.fromarray(img)
-            imgs = [self.transform(img), self.transform(img)]
-            if not self.withLabel:
-                return torch.stack(imgs)
-            else:
-                imgLabelTrans = self.labelTrans(img)
-                label = self.targets[index]
-                return torch.stack(imgs), imgLabelTrans, label
-
     # dataset process
-    train_datasets = CustomCIFAR10(root=args.data, train=True, transform=tfs_train, download=True)
-    val_dataset = CustomCIFAR10(root=args.data, train=True, transform=tfs_test, download=True)
-    num_classes = 10
+    if args.dataset == 'cifar10':
+        train_datasets = CustomCIFAR10(root=args.data, train=True, transform=tfs_train, download=True)
+        val_dataset = CustomCIFAR10(root=args.data, train=True, transform=tfs_test, download=True)
+        num_classes = 10
+    elif args.dataset == 'cifar100':
+        train_datasets = CustomCIFAR100(root=args.data, train=True, transform=tfs_train, download=True)
+        val_dataset = CustomCIFAR100(root=args.data, train=True, transform=tfs_test, download=True)
+        num_classes = 100
+    elif args.dataset == 'stl10':
+        train_datasets = CustomSTL10(root=args.data, split='unlabeled', transform=tfs_train, download=True)
+        val_dataset = CustomSTL10(root=args.data, split='unlabeled', transform=tfs_train, download=True)
+        num_classes = 10
+    else:
+        print("unknow dataset")
+        assert False
 
     full_indices = np.arange(0,len(train_datasets),1)
     train_indices = np.random.choice(len(train_datasets), size=int(len(train_datasets) * 0.99), replace=False)
@@ -209,6 +294,11 @@ def main():
     test_loss_list = []
     for epoch in range(start_epoch, args.epochs + 1):
         starttime = datetime.datetime.now()
+        K = 50
+        strength = 1 - int((epoch-1)/K) * K/args.epochs
+        tfs_train = get_transform(strength)
+        train_loader = get_trainset(args, strength)
+        coreset_class.dataset = train_loader.dataset
         if epoch >= args.warmup and (epoch-1) % args.fre == 0:
             tmp_state_dict = model.state_dict()
             coreset_class.model.load_state_dict(tmp_state_dict)
@@ -235,7 +325,7 @@ def main():
             for i in range((epoch - 1) * len(train_loader)):
                 scheduler.step()
                 
-        train_loss = train(train_loader, model, optimizer, scheduler, epoch, log, num_classes=num_classes)
+        train_loss = train(train_loader, model, optimizer, scheduler, epoch, log, num_classes=num_classes, strength=strength)
         endtime = datetime.datetime.now()
         time = (endtime - starttime).seconds
         
@@ -249,7 +339,7 @@ def main():
 
         log.info('[Epoch: {}] [Train loss: {}] [Train time: {}]'.format(epoch, train_loss, time))
 
-def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
+def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes, strength):
 
     losses = AverageMeter()
     losses.reset()
@@ -274,7 +364,10 @@ def train(train_loader, model, optimizer, scheduler, epoch, log, num_classes):
             inputs_adv = PGD_contrastive(model, inputs, iters=args.pgd_iter, singleImg=False)
             features_adv = model.train()(inputs_adv, 'pgd')
             features = model.train()(inputs, 'normal')
-            loss = (nt_xent(features) + nt_xent(features_adv))/2
+            LAMBDA = 2/3
+            weight = LAMBDA * (1 - strength)
+            # print(weight)
+            loss = ((1 - weight) * nt_xent(features) + (1 + weight) * nt_xent(features_adv))/2
 
         optimizer.zero_grad()
         loss.backward()
