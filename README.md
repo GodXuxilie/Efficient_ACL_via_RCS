@@ -16,7 +16,6 @@ This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient A
 ### [ACL/DynACL with RCS on CIFAR-10/CIFAR-100/STL-10](./ACL/run.sh)
 ```
 cd ./ACL
-python ACL.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 python DynACL.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
 ### [ACL with RCS on ImageNet-1K of $32 \times 32$ resolution](./ACL_ImageNet/ACL_imagnet.sh)
@@ -34,13 +33,13 @@ wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ### [Standard Adversarial Training (SAT) with RCS on ImageNet-1K of $32 \times 32$ resolution](./SAT_ImegeNet_32/SAT_imagenet_32.sh)
 ```
 cd ./SAT_ImageNet_32
-python SAT.py --out_dir exp_dir --fraction 0.05
+python SAT.py --out_dir exp_dir --fraction 0.2
 ```
 
 ### [Standard Adversarial Training (SAT) with RCS on ImageNet-1K of $224 \times 224$ resolution](./SAT_ImageNet_224/SAT_imagenet_224.sh)
 ```
 cd ./SAT_ImageNet_224
-python SAT.py --out_dir exp_dir --fraction 0.05 
+python SAT.py --out_dir exp_dir --fraction 0.2
 ```
 As for preparing ImageNet-1K of $224\times 224$ resolution, we use the following scripts:
 ```
