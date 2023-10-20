@@ -1,5 +1,5 @@
 ### Pre-training ###
-nohup python ACL.py results/ACL_KL_005 --ACL_DS --gpu 0,1,2,3 --method RCS --fraction 0.05 &
+nohup python ACL_RCS.py results/ACL_KL_005 --ACL_DS --gpu 0,1,2,3 --method RCS --fraction 0.05 &
 
 ### Finetuning ###
 PT=results/ACL_KL_005/model.pt

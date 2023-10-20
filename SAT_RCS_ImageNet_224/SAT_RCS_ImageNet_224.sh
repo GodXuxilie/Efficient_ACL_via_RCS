@@ -1,7 +1,7 @@
 ### Pre-training ###
-nohup python SAT.py --gpu 0,1,2,3 --net r50 --out_dir KL_005 --method RCS --fraction 0.05 &
-nohup python SAT.py --gpu 0,1,2,3 --net r50 --out_dir KL_01 --method RCS --fraction 0.1 &
-nohup python SAT.py --gpu 0,1,2,3 --net r50 --out_dir KL_02 --method RCS --fraction 0.2 &
+nohup python SAT_RCS.py --gpu 0,1,2,3 --net r50 --out_dir KL_005 --method RCS --fraction 0.05 &
+nohup python SAT_RCS.py --gpu 0,1,2,3 --net r50 --out_dir KL_01 --method RCS --fraction 0.1 &
+nohup python SAT_RCS.py --gpu 0,1,2,3 --net r50 --out_dir KL_02 --method RCS --fraction 0.2 &
 
 
 ### Finetuning ###
