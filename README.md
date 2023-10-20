@@ -18,12 +18,12 @@ RCS selects an **informative subset** that can achieve the minimized representat
 
 ## Script
 
-### [RCS acclerates robust self-supervised pre-training on small-scale dataset (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
+### [RCS accelerates robust self-supervised pre-training on small-scale dataset (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
 ```
 cd ./ACL
 python DynACL_RCS.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
-### [RCS acclerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_ImageNet/ACL_RCS_ImageNet.sh)
+### [RCS accelerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_ImageNet/ACL_RCS_ImageNet.sh)
 ```
 cd ./ACL_RCS_ImageNet
 python ACL_RCS.py exp_dir --ACL_DS --fraction 0.05
