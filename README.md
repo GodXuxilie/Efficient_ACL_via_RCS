@@ -61,7 +61,7 @@ wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz
 We provide the following pre-trained checkpoints:
 - Efficient ACL via RCS on CIFAR-10/CIFAR-100/STL-10 using ResNet-18 are provided in [Model Zoo](https://github.com/GodXuxilie/RobustSSL_Benchmark) of [RobustSSL Benchmark](https://robustssl.github.io);
 - Efficient ACL via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox](https://www.dropbox.com/scl/fi/5sfzkz2911qrzxhaw4ubg/ACL_RCS_WRN28_10_ImageNet1K_32.pt?rlkey=nwl4hxf844knz2j0buf5apxw4&dl=0);
-- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox](https://www.dropbox.com/scl/fi/qf5amzr9k3vfzwlshssqy/SAT_RCS_WRN28_ImageNet1K_32.tar?rlkey=tfq32bgdn3nd4c98ix2kzgjbu&dl=0);
+- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox](https://www.dropbox.com/scl/fi/qf5amzr9k3vfzwlshssqy/SAT_RCS_WRN28_10_ImageNet1K_32.tar?rlkey=tfq32bgdn3nd4c98ix2kzgjbu&dl=0);
 - Efficient SAT via RCS on ImageNet-1K of $224 \times 224$ resolution using ResNet-50 in [Dropbox](https://www.dropbox.com/scl/fi/rgy0a741gws6tnz5u0bk7/SAT_RCS_ResNet50_ImageNet1K_224.tar?rlkey=prih3zf55bvxv6x7e61fqxyol&dl=0).
 
 
