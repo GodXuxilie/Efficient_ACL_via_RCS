@@ -35,7 +35,7 @@ wget https://image-net.org/data/downsample/Imagenet32_train.zip
 wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ```
 
-### [RCS speeds up robust supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./SAT_RCS_ImegeNet_32/run.sh)
+### [RCS speeds up robust supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./SAT_RCS_ImageNet_32/run.sh)
 ```
 cd ./SAT_RCS_ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
