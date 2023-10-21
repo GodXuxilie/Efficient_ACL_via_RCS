@@ -1,5 +1,5 @@
 # Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection
----
+
 This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection** (https://arxiv.org/pdf/2302.03857.pdf) 
 <br>Xilie Xu* (NUS), Jingfeng Zhang* (RIKEN-AIP/The University of Auckland), Feng Liu (The University of Melbourne), Masashi Sugiyama (RIKEN-AIP/The University of Toyko), Mohan Kankanhalli (NUS).
 
