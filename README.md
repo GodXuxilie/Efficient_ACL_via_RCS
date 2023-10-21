@@ -39,13 +39,13 @@ wget https://image-net.org/data/downsample/Imagenet32_train.zip
 wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ```
 
-#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./SAT_RCS/ImageNet_32/run.sh)
+#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/tree/master/SAT_RCS/ImageNet_32)
 ```
 cd ./SAT_RCS/ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 
-#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $224 \times 224$ Resolution](./SAT_RCS/ImageNet_224/run.sh)
+#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $224 \times 224$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/tree/master/SAT_RCS/ImageNet_224)
 ```
 cd ./SAT_RCS/ImageNet_224
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
