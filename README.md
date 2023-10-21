@@ -16,14 +16,17 @@ This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient A
 RCS outputs a coreset which is **an informative training subset**. The model can achieve the minimized representational divergence between natural data and their adversarial counterparts after training on the coreset selected by RCS. In this way, RCS helps maintain the adversarial robustness of representations while accelerating robust pre-training. 
 
 
+
 ## Script
 
-### [RCS accelerates robust self-supervised pre-training on small-scale dataset (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
+In our repo, we provide the codes and scripts of RCS for efficient robust pre-training including adversarial contrastive learning (ACL) using unlabelled datasets and standard adversarial training (SAT) using the labelled datasets.
+
+### [RCS for Efficient ACL on Small-Scale datasets (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
 ```
 cd ./ACL_RCS
 python DynACL_RCS.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
-### [RCS accelerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_RCS_ImageNet/run.sh)
+### [RCS for Efficient ACL on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./ACL_RCS_ImageNet/run.sh)
 ```
 cd ./ACL_RCS_ImageNet
 python ACL_RCS.py exp_dir --ACL_DS --fraction 0.05
@@ -35,13 +38,13 @@ wget https://image-net.org/data/downsample/Imagenet32_train.zip
 wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ```
 
-### [RCS speeds up robust supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/blob/master/SAT_RCS_ImageNet_32/run.sh)
+### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/blob/master/SAT_RCS_ImageNet_32/run.sh)
 ```
 cd ./SAT_RCS_ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 
-### [RCS speeds up robust supervised pre-training on ImageNet-1K of $224 \times 224$ resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/tree/master/SAT_RCS_ImageNet_32/run.sh)
+### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/tree/master/SAT_RCS_ImageNet_32/run.sh)
 ```
 cd ./SAT_RCS_ImageNet_224
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
