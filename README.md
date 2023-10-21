@@ -3,7 +3,7 @@
 This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection** (https://arxiv.org/pdf/2302.03857.pdf) 
 <br>Xilie Xu* (NUS), Jingfeng Zhang* (RIKEN-AIP/The University of Auckland), Feng Liu (The University of Melbourne), Masashi Sugiyama (RIKEN-AIP/The University of Toyko), Mohan Kankanhalli (NUS).
 
-<!-- In this repo, we provide the code and the script for reproduce the experiemtns in the main paper, including ACL/DynACL on CIFAR-10/CIFAR-100/STL10, ACL on ImageNet-1K, and standard adversarial training (SAT) on ImageNet-1K.  -->
+<!-- In this repo, we provide the code and the script for reproducing the experiments in the main paper, including ACL/DynACL on CIFAR-10/CIFAR-100/STL10, ACL on ImageNet-1K, and standard adversarial training (SAT) on ImageNet-1K.  -->
 
 <div align="center">
     <img src="pic/intro.jpg" />
@@ -11,9 +11,9 @@ This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient A
 
 <br>
 
-**Robustness-aware coreset selection (RCS)** can siginificantly **speed up** both robust self-supervised pre-training as well as supervised pre-training, while **maintaining** the transferability of the pre-trained models. 
+**Robustness-aware coreset selection (RCS)** can significantly **speed up** both robust self-supervised pre-training and supervised pre-training while **maintaining** the transferability of the pre-trained models. 
 
-RCS selects an **informative subset** that can achieve the minimized representational divergence between natural data and their adversarial counterparts, thus expecting the selected coreset to be helpful in improving the adversarial robustness of representations. 
+RCS outputs a coreset which is **an informative training subset**. The model can achieve the minimized representational divergence between natural data and their adversarial counterparts after training on the coreset selected by RCS. In this way, RCS helps maintain the adversarial robustness of representations while accelerating robust pre-training. 
 
 
 ## Script
