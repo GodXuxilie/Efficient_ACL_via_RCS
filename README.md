@@ -22,14 +22,14 @@ In our repo, we provide the codes and scripts of RCS for speeding up robust pre-
 - Efficient adversarial contrastive learning (ACL) via on unlabeled datasets (CIFAR-10/CIFAR-100/STL-10/ImageNet-1K);
 - Efficient standard adversarial training (SAT) via RCS on labelled datasets (ImageNet-1K).
 
-#### [RCS for Efficient ACL on Small-Scale datasets (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
+#### [RCS for Efficient ACL on Small-Scale datasets (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/small_scale_datasets/run.sh)
 ```
-cd ./ACL_RCS
+cd ./ACL_RCS/small_scale_datasets
 python DynACL_RCS.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
-#### [RCS for Efficient ACL on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./ACL_RCS_ImageNet/run.sh)
+#### [RCS for Efficient ACL on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./ACL_RCS/ImageNet_32/run.sh)
 ```
-cd ./ACL_RCS_ImageNet
+cd ./ACL_RCS/ImageNet_32
 python ACL_RCS.py exp_dir --ACL_DS --fraction 0.05
 ```
 As for preparing ImageNet-1K of $32 \times 32$ resolution, we use the following scripts:
@@ -39,15 +39,15 @@ wget https://image-net.org/data/downsample/Imagenet32_train.zip
 wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ```
 
-#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/blob/master/SAT_RCS_ImageNet_32/run.sh)
+#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./SAT_RCS/ImageNet_32/run.sh)
 ```
-cd ./SAT_RCS_ImageNet_32
+cd ./SAT_RCS/ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 
-#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](https://github.com/GodXuxilie/Efficient_ACL_via_RCS/tree/master/SAT_RCS_ImageNet_32/run.sh)
+#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./SAT_RCS/ImageNet_224/run.sh)
 ```
-cd ./SAT_RCS_ImageNet_224
+cd ./SAT_RCS/ImageNet_224
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 As for preparing ImageNet-1K of $224\times 224$ resolution, we use the following scripts:
