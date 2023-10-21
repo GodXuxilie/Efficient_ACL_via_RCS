@@ -20,7 +20,7 @@ RCS outputs a coreset which is **an informative training subset**. The model can
 
 ### [RCS accelerates robust self-supervised pre-training on small-scale dataset (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
 ```
-cd ./ACL
+cd ./ACL_RCS
 python DynACL_RCS.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
 ### [RCS accelerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_ImageNet/ACL_RCS_ImageNet.sh)
