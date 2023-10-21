@@ -16,12 +16,11 @@ This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient A
 RCS outputs a coreset which is **an informative training subset**. The model can achieve the minimized representational divergence between natural data and their adversarial counterparts after training on the coreset selected by RCS. In this way, RCS helps maintain the adversarial robustness of representations while accelerating robust pre-training. 
 
 
-
-## Script
+## Script & Pre-Trained Checkpoints
 
 In our repo, we provide the codes and scripts of RCS for speeding up robust pre-training as follows:
-- Efficient adversarial contrastive learning (ACL) on unlabeled datasets (CIFAR-10/CIFAR-100/STL-10/ImageNet-1K) via RCS;
-- Efficient standard adversarial training (SAT) on labelled datasets (ImageNet-1K) via RCS.
+- Efficient adversarial contrastive learning (ACL) via on unlabeled datasets (CIFAR-10/CIFAR-100/STL-10/ImageNet-1K);
+- Efficient standard adversarial training (SAT) via RCS on labelled datasets (ImageNet-1K).
 
 #### [RCS for Efficient ACL on Small-Scale datasets (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
 ```
@@ -58,10 +57,20 @@ wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar
 wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz
 ```
 
+#### Pre-Trained Checkpoints
+We provide the following pre-trained checkpoints:
+- Efficient ACL via RCS on CIFAR-10/CIFAR-100/STL-10 are provided in [Model Zoo](https://github.com/GodXuxilie/RobustSSL_Benchmark) of [RobustSSL Benchmark](https://robustssl.github.io).
+- Efficient ACL via RCS on ImageNet-1K of $32 \times 32$ resolution in [Dropbox]()
+- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution in [Dropbox]()
+- Efficient SAT via RCS on ImageNet-1K of $224 \times 224$ resolution in [Dropbox]()
+
+
 ## Package
 + Python 3.8
 + Pytorch 1.13
 + CUDA 11.6
+
+
 
 
 ## BibTeX
