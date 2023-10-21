@@ -1,4 +1,4 @@
-# Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection 
+# Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection
 ---
 This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient Adversarial Contrastive Learning via Robustness-aware Coreset Selection** (https://arxiv.org/pdf/2302.03857.pdf) 
 <br>Xilie Xu* (NUS), Jingfeng Zhang* (RIKEN-AIP/The University of Auckland), Feng Liu (The University of Melbourne), Masashi Sugiyama (RIKEN-AIP/The University of Toyko), Mohan Kankanhalli (NUS).
@@ -59,10 +59,10 @@ wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz
 
 #### Pre-Trained Checkpoints
 We provide the following pre-trained checkpoints:
-- Efficient ACL via RCS on CIFAR-10/CIFAR-100/STL-10 are provided in [Model Zoo](https://github.com/GodXuxilie/RobustSSL_Benchmark) of [RobustSSL Benchmark](https://robustssl.github.io).
-- Efficient ACL via RCS on ImageNet-1K of $32 \times 32$ resolution in [Dropbox]()
-- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution in [Dropbox]()
-- Efficient SAT via RCS on ImageNet-1K of $224 \times 224$ resolution in [Dropbox]()
+- Efficient ACL via RCS on CIFAR-10/CIFAR-100/STL-10 using ResNet-18 are provided in [Model Zoo](https://github.com/GodXuxilie/RobustSSL_Benchmark) of [RobustSSL Benchmark](https://robustssl.github.io).
+- Efficient ACL via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox]()
+- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox]()
+- Efficient SAT via RCS on ImageNet-1K of $224 \times 224$ resolution using ResNet-50 in [Dropbox](https://www.dropbox.com/scl/fi/rgy0a741gws6tnz5u0bk7/SAT_RCS_ResNet50_ImageNet1K_224.tar?rlkey=prih3zf55bvxv6x7e61fqxyol&dl=0)
 
 
 ## Package
