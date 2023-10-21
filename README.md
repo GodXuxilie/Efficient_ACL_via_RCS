@@ -45,7 +45,7 @@ cd ./SAT_RCS/ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 
-#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $32 \times 32$ Resolution](./SAT_RCS/ImageNet_224/run.sh)
+#### [RCS for Efficient SAT on Large-Scale ImageNet-1K of $224 \times 224$ Resolution](./SAT_RCS/ImageNet_224/run.sh)
 ```
 cd ./SAT_RCS/ImageNet_224
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
