@@ -10,8 +10,6 @@ import torch
 from utils_log.utils import set_logger
 import attack_generator as attack
 
-from coreset_util import RandomCoreset, LossCoreset, PGD_JS, JS_normalize_loss, cos_normalize_loss, mse_normalize_loss
-
 parser = argparse.ArgumentParser(description='PyTorch Adversarial Training')
 parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train')
 parser.add_argument('--weight_decay', '--wd', default=5e-4, type=float, metavar='W')

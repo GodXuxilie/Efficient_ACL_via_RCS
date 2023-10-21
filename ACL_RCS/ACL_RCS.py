@@ -10,7 +10,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import RCS
+from RCS import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')

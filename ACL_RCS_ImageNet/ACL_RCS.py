@@ -9,7 +9,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import RCS
+from RCS import RCS
 import torch.nn as nn
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')

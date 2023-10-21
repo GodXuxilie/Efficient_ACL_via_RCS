@@ -9,7 +9,7 @@ import logging
 import torch
 from utils_log.utils import set_logger
 import attack_generator as attack
-from coreset_util import RCS
+from RCS import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Adversarial Training')
 parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of epochs to train')

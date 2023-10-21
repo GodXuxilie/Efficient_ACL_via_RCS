@@ -10,7 +10,7 @@ import os
 import numpy as np
 from optimizer.lars import LARS
 import datetime
-from coreset_util import RCS
+from RCS import RCS
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('experiment', type=str, help='location for saving trained models')
@@ -109,9 +109,6 @@ class CustomSTL10(STL10):
         self.ori_transfor = transforms.Compose([transforms.ToTensor()])
 
     def __getitem__(self, idx):
-        # if not self.train:
-        #     return super().__getitem__(idx)
-
         img = self.data[idx]
         img = Image.fromarray(np.transpose(img, (1, 2, 0))).convert('RGB')
         imgs = [self.transform(img), self.transform(img)]
