@@ -23,7 +23,7 @@ RCS outputs a coreset which is **an informative training subset**. The model can
 cd ./ACL_RCS
 python DynACL_RCS.py exp_dir --ACL_DS --dataset dataset --fraction 0.2
 ```
-### [RCS accelerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_RCS_ImageNet/ACL_RCS_ImageNet.sh)
+### [RCS accelerates robust self-supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./ACL_RCS_ImageNet/run.sh)
 ```
 cd ./ACL_RCS_ImageNet
 python ACL_RCS.py exp_dir --ACL_DS --fraction 0.05
@@ -35,13 +35,13 @@ wget https://image-net.org/data/downsample/Imagenet32_train.zip
 wget https://image-net.org/data/downsample/Imagenet32_val.zip
 ```
 
-### [RCS speeds up robust supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./SAT_RCS_ImegeNet_32/SAT_RCS_ImageNet_32.sh)
+### [RCS speeds up robust supervised pre-training on ImageNet-1K of $32 \times 32$ resolution](./SAT_RCS_ImegeNet_32/run.sh)
 ```
 cd ./SAT_RCS_ImageNet_32
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
 ```
 
-### [RCS speeds up robust supervised pre-training on ImageNet-1K of $224 \times 224$ resolution](./SAT_RCS_ImageNet_224/SAT_RCS_ImageNet_224.sh)
+### [RCS speeds up robust supervised pre-training on ImageNet-1K of $224 \times 224$ resolution](./SAT_RCS_ImageNet_224/run.sh)
 ```
 cd ./SAT_RCS_ImageNet_224
 python SAT_RCS.py --out_dir exp_dir --fraction 0.2
