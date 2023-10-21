@@ -19,7 +19,9 @@ RCS outputs a coreset which is **an informative training subset**. The model can
 
 ## Script
 
-In our repo, we provide the codes and scripts of RCS for efficient robust pre-training including adversarial contrastive learning (ACL) using unlabelled datasets and standard adversarial training (SAT) using the labelled datasets.
+In our repo, we provide the codes and scripts of RCS for speeding up robust pre-training as follows:
+- Efficient adversarial contrastive learning (ACL) on unlabeled datasets (CIFAR-10/CIFAR-100/STL-10/ImageNet-1K) via RCS;
+- Efficient standard adversarial training (SAT) on labelled datasets (ImageNet-1K) via RCS.
 
 ### [RCS for Efficient ACL on Small-Scale datasets (CIFAR-10/CIFAR-100/STL-10)](./ACL_RCS/run.sh)
 ```
