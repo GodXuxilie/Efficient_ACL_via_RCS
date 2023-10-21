@@ -16,7 +16,7 @@ This repository provides codes for NeurIPS 2023 (Spotlight) paper: **Efficient A
 RCS outputs a coreset which is **an informative training subset**. The model can achieve the minimized representational divergence between natural data and their adversarial counterparts after training on the coreset selected by RCS. In this way, RCS helps maintain the adversarial robustness of representations while accelerating robust pre-training. 
 
 
-## Script & Pre-Trained Checkpoints
+## Script
 
 In our repo, we provide the codes and scripts of RCS for speeding up robust pre-training as follows:
 - Efficient adversarial contrastive learning (ACL) via on unlabeled datasets (CIFAR-10/CIFAR-100/STL-10/ImageNet-1K);
@@ -57,11 +57,11 @@ wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar
 wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz
 ```
 
-#### Pre-Trained Checkpoints
+## Pre-Trained Checkpoints
 We provide the following pre-trained checkpoints:
 - Efficient ACL via RCS on CIFAR-10/CIFAR-100/STL-10 using ResNet-18 are provided in [Model Zoo](https://github.com/GodXuxilie/RobustSSL_Benchmark) of [RobustSSL Benchmark](https://robustssl.github.io);
 - Efficient ACL via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox](https://www.dropbox.com/scl/fi/5sfzkz2911qrzxhaw4ubg/ACL_RCS_WRN28_10_ImageNet1K_32.pt?rlkey=nwl4hxf844knz2j0buf5apxw4&dl=0);
-- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox]();
+- Efficient SAT via RCS on ImageNet-1K of $32 \times 32$ resolution using WRN-28-10 in [Dropbox](https://www.dropbox.com/scl/fi/qf5amzr9k3vfzwlshssqy/SAT_RCS_WRN28_ImageNet1K_32.tar?rlkey=tfq32bgdn3nd4c98ix2kzgjbu&dl=0);
 - Efficient SAT via RCS on ImageNet-1K of $224 \times 224$ resolution using ResNet-50 in [Dropbox](https://www.dropbox.com/scl/fi/rgy0a741gws6tnz5u0bk7/SAT_RCS_ResNet50_ImageNet1K_224.tar?rlkey=prih3zf55bvxv6x7e61fqxyol&dl=0).
 
 
@@ -69,9 +69,6 @@ We provide the following pre-trained checkpoints:
 + Python 3.8
 + Pytorch 1.13
 + CUDA 11.6
-
-
-
 
 ## BibTeX
 ```
