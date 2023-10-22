@@ -75,7 +75,7 @@ We provide the following pre-trained checkpoints:
 @inproceedings{xu2023RCS,
   title={Efficient Adversarial Contrastive Learning via Robustness-Aware Coreset Selection},
   author={Xu, Xilie and Zhang, Jingfeng and Liu, Feng and Sugiyama, Masashi and Kankanhalli, Mohan},
-  booktitle={Conference on Neural Information Processing Systems (NeurIPS)},
+  booktitle={NeurIPS},
   year={2023}
 }
 ```
